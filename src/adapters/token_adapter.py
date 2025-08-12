@@ -6,14 +6,15 @@ from jose import jwt, JWTError
 from ports.token_port import TokenPort
 from schemas.models import TokenPayload, TokenResponse
 from config.logger import get_logger
+from config import constants as con
 from config.settings import token_config
 
 logger = get_logger(__name__)
 auth_scheme = HTTPBearer()
 
 class TokenAdapter(TokenPort):
-    def __init__(self, access_token_exp:int, 
-                        refresh_token_exp:int
+    def __init__(self, access_token_exp:int=con.ACCESS_TOKEN_EXPIRE_MINUTES, 
+                        refresh_token_exp:int=con.REFRESH_TOKEN_EXPIRE_DAYS
                  ):
         self.access_token_exp = access_token_exp
         self.refresh_token_exp = refresh_token_exp
@@ -26,7 +27,7 @@ class TokenAdapter(TokenPort):
         payload = TokenPayload(
             user_id=user_id,
             exp=expires,
-            issued_at=int(now.timestamp()),
+            iat=int(now.timestamp()),
             token_type="access"
         )
         try:
@@ -54,11 +55,11 @@ class TokenAdapter(TokenPort):
         payload = TokenPayload(
             user_id=user_id,
             exp=expires,
-            issued_at=int(now.timestamp()),
+            iat=int(now.timestamp()),
             token_type="refresh"
         )
         try:
-            refresh = jwt.encode(payload.model_dump(), 
+            refresh = jwt.encode(payload.model_dump(mode='json'), 
                                 key=token_config.secret, 
                                 algorithm=token_config.algorithm)
         except JWTError as e:

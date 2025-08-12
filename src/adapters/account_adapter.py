@@ -2,9 +2,10 @@ import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
+from typing import Optional
 
 from ports.account_port import AccountPort
-from schemas.models import AccountResponse, AccountRequest
+from schemas.models import AccountResponse
 from infra.db.orm.models import User
 from infra.db.storage import repo
 from config.logger import get_logger
@@ -27,21 +28,28 @@ class AccountAdapter(AccountPort):
     def _verify_password(self, password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
     
-    async def create_account(self, email: str, pwd: str, name: str) -> AccountResponse:
+    async def create_account(self, email: str, pwd: str, name: str, provider: str = "local") -> AccountResponse:
+        """계정 생성. 
+            일반 계정 생성과 외부 프로바이더 계정생성 모두 가능
+        return: AccountResponse
+        """
         try:
-            # Check if user already exists
+            # 기존 존재하는 유저인지 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if user:
                 raise HTTPException(status_code=400, detail="Email already exist")
             
-            # Hash password
-            hashed_password = await run_in_threadpool(self._hash_password, pwd)
+            # Hash password only for local accounts
+            hashed_password = None
+            if provider == "local":
+                hashed_password = await run_in_threadpool(self._hash_password, pwd)
             
             # Create new user
             new_user = User(
                 email=email,
                 hashed_pwd=hashed_password,
-                name=name
+                name=name,
+                provider=provider
             )
             
             await repo.add_user(new_user, self.db)
@@ -49,7 +57,8 @@ class AccountAdapter(AccountPort):
             return AccountResponse(
                 id=new_user.id,
                 email=new_user.email,
-                name=new_user.name
+                name=new_user.name,
+                provider=new_user.provider
             )
         except HTTPException:
             raise
@@ -57,8 +66,8 @@ class AccountAdapter(AccountPort):
             raise HTTPException(status_code=500, detail=f"Internal server error {e}")
         
     async def get_account(self, email: str) -> AccountResponse:
+        """이메일로 유저정보 조회"""
         try:
-            
             # Get user from database
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
@@ -67,7 +76,8 @@ class AccountAdapter(AccountPort):
             return AccountResponse(
                 id=user.id,
                 email=user.email,
-                name=user.name
+                name=user.name,
+                provider=user.provider
             )
             
         except HTTPException:
@@ -77,13 +87,18 @@ class AccountAdapter(AccountPort):
             raise HTTPException(status_code=500, detail="Internal server error")
         
     async def login_account(self, email: str, pwd: str) -> AccountResponse:
+        """
+        이메일, 비밀번호를 사용한 일반 로그인
+        
+        return: AccountResponse
+        """
         try:
-            # Find user by email
+            # 유저 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
-            # Verify password
+            # 비밀번호 확인
             is_valid = await run_in_threadpool(self._verify_password, pwd, user.hashed_pwd )
             if not is_valid:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -91,7 +106,8 @@ class AccountAdapter(AccountPort):
             return AccountResponse(
                 id=user.id,
                 email=user.email,
-                name=user.name
+                name=user.name, 
+                provider=user.provider
             )
         
         except HTTPException:
@@ -101,17 +117,21 @@ class AccountAdapter(AccountPort):
             raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
         
     async def update_account(self, email: str, pwd: str, name: str) -> None:
+        """
+        유저 정보 업데이트
+        비밀번호 변경시 provider 확인 (provider = local 일때만 비밀번호 해시 저장)
+        """
         try:
-            # Get user from database
+            # db 에서 유저 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
 
-           ## update
+           ## 유저 정보 업데이트
             if name is not None:
                 user.name = name
-            if pwd is not None:
+            if pwd is not None and user.provider == "local":
                 user.hashed_pwd = await run_in_threadpool(self._hash_password, pwd)
             
             await repo.update_user(user=user, db=self.db)
@@ -122,9 +142,47 @@ class AccountAdapter(AccountPort):
             logger.exception(str(e))
             raise HTTPException(status_code=500, detail="Internal server error")
         
-    # https://blog.neonkid.xyz/262
-    async def oauth_google(self, auth_code:str)->AccountResponse : 
-        ...
+
+    async def provider_login(self, email: str, provider: str, name: Optional[str] = None) -> AccountResponse:
+        """OAuth provider login
+            구글 로그인 등 외부 프로바이더 로그인.
+            유저 테이블에 존재하지 않을 시 (새 로그인 시), 유저 생성 후 유저 리턴
+             
+            return: AccountResponse
+        """
+        try:
+            # 유저 테이블 조회
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            
+            if user:
+                # 유저 있음. 유저 리턴
+                return AccountResponse(
+                    id=user.id,
+                    email=user.email,
+                    name=user.name,
+                    provider=user.provider
+                )
+            else:
+                # 유저 없음. 새 유저 생성
+                new_user = User(
+                    email=email,
+                    name=name,
+                    provider=provider,
+                    hashed_pwd=None  #provider 로그인 시 비밀번호 없음. (구글 등)
+                )
+                
+                await repo.add_user(new_user, self.db)
+                
+                return AccountResponse(
+                    id=new_user.id,
+                    email=new_user.email,
+                    name=new_user.name,
+                    provider=new_user.provider
+                )
+                
+        except Exception as e:
+            logger.exception(f"Error in provider login: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
         
     async def deactivate_account(self, email: str) -> bool:
         """계정 삭제"""

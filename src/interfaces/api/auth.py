@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra.db.storage.session import get_session
 from interfaces.api.auth_google import google_router
-from schemas.models import TokenResponse, AccountRequest
+from schemas.models import TokenResponse, LoginRequest, SignupRequest
 
 from use_cases.auth.auth import AuthHandler
 from adapters.account_adapter import AccountAdapter
@@ -25,7 +25,7 @@ def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request:AccountRequest, 
+async def login(request:LoginRequest, 
                 auth_handler:AuthHandler=Depends(get_auth_handler)
                 ):
     """로그인.
@@ -38,7 +38,7 @@ async def login(request:AccountRequest,
 
 
 @router.post("/signup")
-async def signup(request:AccountRequest,
+async def signup(request:SignupRequest,
                  auth_handler:AuthHandler=Depends(get_auth_handler))->bool:
     """회원가입.
         parameter: Body(email, pwd, name)
@@ -49,8 +49,14 @@ async def signup(request:AccountRequest,
     
 
 @router.post("/refresh-token", response_model=TokenResponse)
-async def refresh(email:str, pwd:str,
-                auth_handler:AuthHandler=Depends(get_auth_handler)):
+async def refresh(
+    auth_handler:AuthHandler=Depends(get_auth_handler)):
     # TODO: 리프레시 토큰 검증 후 새토큰 발급
+    
+    # 클라이언트 1: 엑세스토큰 리프레시토큰 보냄, 
+    # 서버에서 : 엑세스 토큰 검증하고, vali => 로그인
+    # 서버에서 : expire => db 저장돼있는 리프레시토큰 확인해서 
+    # 액티브 토큰 + 리프레시토큰 발급
+    # 리프레시까지 expire => 비로그인화면으로
     return
     

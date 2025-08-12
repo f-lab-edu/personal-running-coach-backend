@@ -20,7 +20,7 @@ class AccountPort(ABC):
         ...
         
     @abstractmethod
-    def oauth_google(self, email:str, pwd:str)->AccountResponse : 
+    def provider_login(self, email:str, pwd:str)->AccountResponse : 
         ...
         
     @abstractmethod

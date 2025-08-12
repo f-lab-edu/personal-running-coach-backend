@@ -1,16 +1,16 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
-from pydantic_settings import BaseSettings
 
 
 class CommonConfig(BaseSettings):
-    class Config:
-        env_file = ".env"
-        extra = "ignore" 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
 
 class TokenConfig(CommonConfig):
-    secret:str = Field(default="secret", alias="JWT_SECRET")
-    algorithm:str = Field(default="HS256", alias="JWT_ALGORITHM")
-
+    secret: str = Field(default="secret", alias="JWT_SECRET")
+    algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
 
 class DatabaseConfig(CommonConfig):
     url: str = Field(default="sqlite+aiosqlite:///./db.sqlite3", alias="DATABASE_URL")

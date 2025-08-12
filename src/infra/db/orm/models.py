@@ -8,8 +8,9 @@ class User(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str
     hashed_pwd: Optional[str] = Field(default=None) 
-    name: str
+    name: Optional[str] = Field(default=None)  # Make name optional for OAuth users
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    provider: str = Field(default="local")  # Default to "local" for email/password users
 
     tokens: List["Token"] = Relationship(back_populates="user")
     sns_connects: List["SNSConnect"] = Relationship(back_populates="user")

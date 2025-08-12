@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from infra.db.storage.session import get_session
 
 from adapters.account_adapter import AccountAdapter
+from adapters.token_adapter import TokenAdapter
 from use_cases.auth.oauth_google import GoogleHandler
 from config.settings import google
 
@@ -13,7 +14,8 @@ google_router = APIRouter(prefix="/google", tags=['auth-google'])
 
 def get_handler(db:AsyncSession=Depends(get_session))->GoogleHandler:
     return GoogleHandler(
-        account_adapter=AccountAdapter(db)
+        account_adapter=AccountAdapter(db),
+        token_adapter=TokenAdapter()
     )
 
 @google_router.get("/login")
