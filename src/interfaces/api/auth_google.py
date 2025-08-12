@@ -15,7 +15,8 @@ google_router = APIRouter(prefix="/google", tags=['auth-google'])
 def get_handler(db:AsyncSession=Depends(get_session))->GoogleHandler:
     return GoogleHandler(
         account_adapter=AccountAdapter(db),
-        token_adapter=TokenAdapter()
+        token_adapter=TokenAdapter(),
+        db=db
     )
 
 @google_router.get("/login")

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional
+from uuid import UUID
 
 from ports.account_port import AccountPort
 from schemas.models import AccountResponse
@@ -208,4 +209,23 @@ class AccountAdapter(AccountPort):
         except Exception as e:
             logger.exception(str(e))
             raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
+        """db에 저장된 리프레시토큰과 클라이언트의 리프래시토큰 대조 검증"""
+        try:
+            db_refresh = await repo.get_refresh_token(db=self.db,
+                                                user_id=user_id)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="Internal server error")
+        else:
+            # db 에 기존 refresh 없음
+            if db_refresh is None:
+                return False
+            
+            # 토큰 미스매치
+            return db_refresh == refresh_token
+        
         

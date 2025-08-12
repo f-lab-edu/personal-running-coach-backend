@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
 from config.settings import google
@@ -8,7 +9,7 @@ from config.logger import get_logger
 from schemas.models import TokenResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
-from use_cases.auth.auth import AuthHandler
+from infra.db.storage import repo
 
 logger = get_logger(__file__)
 
@@ -24,10 +25,13 @@ class GoogleHandler:
 
     """
     def __init__(self, account_adapter:AccountAdapter,
-                 token_adapter:TokenAdapter):
+                 token_adapter:TokenAdapter,
+                 db:AsyncSession
+                 ):
+        self.db = db
         self.token_url = google.token_url
         self.account_adapter = account_adapter
-        self.token_adatper = token_adapter
+        self.token_adapter = token_adapter
     
     
     async def _get_access_token(self, code:str)->dict:
@@ -87,12 +91,12 @@ class GoogleHandler:
             raise HTTPException(status_code=400, detail=f"Invalid ID token: {str(e)}")
 
         email = id_info.get("email")
-        name = id_info.get("name")  # Google provides name
+        name = id_info.get("name")
         
         if not email:
             raise HTTPException(status_code=400, detail="Invalid google account")
         
-        # 3. Login or create user account
+        # 3. 로그인. 신규로그인시 유저 생성
         try:
             account_response = await self.account_adapter.provider_login(
                 email=email, 
@@ -103,14 +107,21 @@ class GoogleHandler:
             logger.exception(f"Error in provider login: {e}")
             raise HTTPException(status_code=500, detail="Failed to process OAuth login")
         
-        # 4. Create and return access token
-        access_token = self.token_adatper.create_access_token(user_id=str(account_response.id))
-        refresh_token = self.token_adatper.create_refresh_token(user_id=str(account_response.id))
+        user_id = str(account_response.id)
+        
+        # 4. 토큰 발급
+        access = self.token_adapter.create_access_token(user_id=user_id)
+        refresh = self.token_adapter.create_refresh_token(user_id=user_id)
+        
+        # 리프레시 토큰 저장
+        await repo.add_refresh_token(
+            user_id=account_response.id, token=refresh.refresh_token, db=self.db
+        )        
+        
         
         return TokenResponse(
-            access_token=access_token.access_token,
-            refresh_token=refresh_token.refresh_token,
-            exp=access_token.exp
+            access_token=access.access_token,
+            refresh_token=refresh.refresh_token,
         )
 
     

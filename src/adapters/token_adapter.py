@@ -1,16 +1,14 @@
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta
 from jose import jwt, JWTError
 
 from ports.token_port import TokenPort
 from schemas.models import TokenPayload, TokenResponse
 from config.logger import get_logger
+from config.exceptions import TokenExpiredError, TokenInvalidError
 from config import constants as con
 from config.settings import token_config
 
 logger = get_logger(__name__)
-auth_scheme = HTTPBearer()
 
 class TokenAdapter(TokenPort):
     def __init__(self, access_token_exp:int=con.ACCESS_TOKEN_EXPIRE_MINUTES, 
@@ -38,12 +36,9 @@ class TokenAdapter(TokenPort):
                                 algorithm=token_config.algorithm)
         except JWTError as e:
             logger.exception(f"jwt encoding error {e}")
-            raise HTTPException(status_code=500, detail="error while creating token")
+            raise TokenInvalidError(status_code=500, detail="error while creating token")
         
-        token = TokenResponse(
-            access_token=access,
-            exp=expires,
-        )
+        token = TokenResponse(access_token=access)
         
         return token
         
@@ -64,25 +59,18 @@ class TokenAdapter(TokenPort):
                                 algorithm=token_config.algorithm)
         except JWTError as e:
             logger.exception(f"jwt encoding error {e}")
-            raise HTTPException(status_code=500, detail="error while creating token")
-        
-        # TODO: DB 에 refresh 토큰 저장
+            raise TokenInvalidError(status_code=500, detail="error while creating token")
 
-        token = TokenResponse(
-            refresh_token=refresh,
-            exp=expires,
-        )
+        token = TokenResponse(refresh_token=refresh)
         
         return token
 
 
-    def verify_access_token(self, cred:HTTPAuthorizationCredentials=Depends(auth_scheme)
-                            )->TokenPayload: 
+    def verify_access_token(self, token_str:str)->TokenPayload: 
         
         now = int(datetime.now(timezone.utc).timestamp())
-        token = cred.credentials
         try:
-            payload = jwt.decode(token,
+            payload = jwt.decode(token_str,
                                  key=token_config.secret,
                                  algorithms=token_config.algorithm
                                  )
@@ -90,23 +78,22 @@ class TokenAdapter(TokenPort):
             
             ## token type check
             if token.token_type != "access":
-                raise HTTPException(status_code=403, detail="Invalid token type")    
+                raise TokenInvalidError(status_code=401, detail="Invalid token type")    
             elif token.exp < now :
-                raise HTTPException(status_code=403, detail="token expired")
+                raise TokenExpiredError(status_code=401, detail="token expired")
 
             return token
         
         except JWTError as e:
             logger.exception(f"Token verification error {e}")
-            raise HTTPException(status_code=401, detail=f"invalid token")
+            raise TokenInvalidError(status_code=401, detail=f"invalid token")
 
         
-    def verify_refresh_token(self, cred:HTTPAuthorizationCredentials=Depends(auth_scheme)
-                            )->TokenPayload: 
+    def verify_refresh_token(self, token_str:str)->TokenPayload: 
         now = int(datetime.now(timezone.utc).timestamp())
-        token = cred.credentials
+
         try:
-            payload = jwt.decode(token,
+            payload = jwt.decode(token_str,
                                  key=token_config.secret,
                                  algorithms=token_config.algorithm
                                  )
@@ -114,15 +101,15 @@ class TokenAdapter(TokenPort):
             
             ## token type check
             if token.token_type != "refresh":
-                raise HTTPException(status_code=403, detail="Invalid token type")    
+                raise TokenInvalidError(status_code=401, detail="Invalid token type")    
             elif token.exp < now :
-                raise HTTPException(status_code=403, detail="token expired")
+                raise TokenExpiredError(status_code=401, detail="token expired")
 
             return token
         
         except JWTError as e:
             logger.exception(f"Token verification error {e}")
-            raise HTTPException(status_code=401, detail=f"invalid token")
+            raise TokenInvalidError(status_code=401, detail=f"invalid token")
         
     ### 토큰 삭제
     def invalidate_refresh_token(self, jwt_str:str)->bool: 

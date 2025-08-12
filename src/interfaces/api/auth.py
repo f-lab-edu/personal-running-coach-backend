@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from infra.db.storage.session import get_session
 from interfaces.api.auth_google import google_router
-from schemas.models import TokenResponse, LoginRequest, SignupRequest
+from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest
 
 from use_cases.auth.auth import AuthHandler
-from adapters.account_adapter import AccountAdapter
-from adapters.token_adapter import TokenAdapter
+from adapters import AccountAdapter, TokenAdapter
 from config import constants
 
 router = APIRouter(prefix="/auth", tags=['auth'])
 router.include_router(google_router, tags=None)
+auth_scheme = HTTPBearer()
 
 def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:
     return AuthHandler(
@@ -20,6 +21,7 @@ def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:
             access_token_exp=constants.ACCESS_TOKEN_EXPIRE_MINUTES,
             refresh_token_exp=constants.REFRESH_TOKEN_EXPIRE_DAYS
             ),
+        db=db
     )
     
 
@@ -48,15 +50,21 @@ async def signup(request:SignupRequest,
     
     
 
-@router.post("/refresh-token", response_model=TokenResponse)
+@router.post("/token", response_model=TokenResponse)
 async def refresh(
+    refresh_request:RefreshTokenRequest,
+    access_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
     auth_handler:AuthHandler=Depends(get_auth_handler)):
-    # TODO: 리프레시 토큰 검증 후 새토큰 발급
+    """토큰 로그인
+        header: access_token
+        body: refresh_token
+        
+        return: TokenResponse
+    """
+    access_token = access_cred.credentials
+    refresh_token = refresh_request.refresh_token
     
-    # 클라이언트 1: 엑세스토큰 리프레시토큰 보냄, 
-    # 서버에서 : 엑세스 토큰 검증하고, vali => 로그인
-    # 서버에서 : expire => db 저장돼있는 리프레시토큰 확인해서 
-    # 액티브 토큰 + 리프레시토큰 발급
-    # 리프레시까지 expire => 비로그인화면으로
-    return
+    return await auth_handler.login_token(access=access_token, 
+                                          refresh=refresh_token)
+    
     

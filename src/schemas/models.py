@@ -16,8 +16,6 @@ class TokenPayload(BaseModel):  ## jwt payload 용
 class TokenResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
-    token_type:str = "bearer "
-    exp:int
 
 class AccountResponse(BaseModel):
     id: UUID
@@ -38,6 +36,12 @@ class SignupRequest(BaseModel):
     email: EmailStr
     pwd: str
     name: str
+
+# 토큰 로그인
+class RefreshTokenRequest(BaseModel):
+    refresh_token:str
+    
+########
 
 class TrainSession(BaseModel):
     session_id:str
