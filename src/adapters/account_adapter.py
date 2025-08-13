@@ -10,6 +10,7 @@ from schemas.models import AccountResponse
 from infra.db.orm.models import User
 from infra.db.storage import repo
 from config.logger import get_logger
+from infra.security import hash_password, verify_password, decrypt_token
 
 
 logger = get_logger(__name__)
@@ -17,17 +18,6 @@ logger = get_logger(__name__)
 class AccountAdapter(AccountPort):
     def __init__(self,db:AsyncSession):
         self.db = db
-        
-    # bcrypt = 단방향 해시
-    # 비밀번호 해시 후 솔트와 함께 저장.
-    def _hash_password(self, password: str) -> str:
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
-    
-    # 확인시 checkpw 로 암호문 비교 체크
-    def _verify_password(self, password: str, hashed_password: str) -> bool:
-        return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
     
     async def create_account(self, email: str, pwd: str, name: str, provider: str = "local") -> AccountResponse:
         """계정 생성. 
@@ -43,7 +33,7 @@ class AccountAdapter(AccountPort):
             # Hash password only for local accounts
             hashed_password = None
             if provider == "local":
-                hashed_password = await run_in_threadpool(self._hash_password, pwd)
+                hashed_password = await run_in_threadpool(hash_password, pwd)
             
             # Create new user
             new_user = User(
@@ -100,7 +90,7 @@ class AccountAdapter(AccountPort):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
             # 비밀번호 확인
-            is_valid = await run_in_threadpool(self._verify_password, pwd, user.hashed_pwd )
+            is_valid = await run_in_threadpool(verify_password, pwd, user.hashed_pwd )
             if not is_valid:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
@@ -133,7 +123,7 @@ class AccountAdapter(AccountPort):
             if name is not None:
                 user.name = name
             if pwd is not None and user.provider == "local":
-                user.hashed_pwd = await run_in_threadpool(self._hash_password, pwd)
+                user.hashed_pwd = await run_in_threadpool(hash_password, pwd)
             
             await repo.update_user(user=user, db=self.db)
 
@@ -215,17 +205,22 @@ class AccountAdapter(AccountPort):
         try:
             db_refresh = await repo.get_refresh_token(db=self.db,
                                                 user_id=user_id)
+            
+            # db 에 기존 refresh 없음
+            if db_refresh is None:
+                return False
+            
+            # 복호화
+            decrypted = decrypt_token(db_refresh)
+            
+            # 토큰 미스매치
+            return decrypted == refresh_token
+        
+            
         except HTTPException:
             raise
         except Exception as e:
             logger.exception(str(e))
             raise HTTPException(status_code=500, detail="Internal server error")
-        else:
-            # db 에 기존 refresh 없음
-            if db_refresh is None:
-                return False
             
-            # 토큰 미스매치
-            return db_refresh == refresh_token
-        
         

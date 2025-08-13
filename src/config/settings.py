@@ -1,14 +1,20 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from pathlib import Path
 
+ENV_DIR = Path(__file__).resolve().parent.parent
 
 class CommonConfig(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_DIR / ".env",
         extra="ignore",
     )
+    
+class SecurityConfig(CommonConfig):
+    bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS")
+    encryption_key: str = Field(alias="ENCRYPTION_KEY")
 
-class TokenConfig(CommonConfig):
+class JWTConfig(CommonConfig):
     secret: str = Field(default="secret", alias="JWT_SECRET")
     algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
 
@@ -38,4 +44,5 @@ db = DatabaseConfig()
 cors = CORSConfig()
 web = WebConfig()
 google = GoogleConfig()
-token_config = TokenConfig()
+jwt_config = JWTConfig()
+security = SecurityConfig()

@@ -10,6 +10,7 @@ from schemas.models import TokenResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
+from infra.security import encrypt_token
 
 logger = get_logger(__file__)
 
@@ -114,8 +115,10 @@ class GoogleHandler:
         refresh = self.token_adapter.create_refresh_token(user_id=user_id)
         
         # 리프레시 토큰 저장
+        encrypted = encrypt_token(refresh.refresh_token)
+
         await repo.add_refresh_token(
-            user_id=account_response.id, token=refresh.refresh_token, db=self.db
+            user_id=account_response.id, token=encrypted, db=self.db
         )        
         
         
