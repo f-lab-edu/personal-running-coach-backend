@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
 from pathlib import Path
 
 ENV_DIR = Path(__file__).resolve().parent.parent
@@ -13,6 +13,12 @@ class CommonConfig(BaseSettings):
 class SecurityConfig(CommonConfig):
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS")
     encryption_key: str = Field(alias="ENCRYPTION_KEY")
+    
+    @field_validator("encryption_key")
+    def validate_encryption_key(cls, v:str) -> str:
+        if len(v) != 44:
+            raise ValueError("Encryption key length not valid")
+        return v
 
 class JWTConfig(CommonConfig):
     secret: str = Field(default="secret", alias="JWT_SECRET")
