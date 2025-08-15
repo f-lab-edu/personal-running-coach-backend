@@ -7,10 +7,12 @@ class TokenError(Exception):
         return f"{self.status_code}. {self.detail}"
     
 class TokenExpiredError(TokenError):
-    def __init__(self, status_code, detail):
-        super().__init__(status_code, detail)
+    pass
         
 class TokenInvalidError(TokenError):
-    def __init__(self, status_code, detail):
+    def __init__(self, status_code, detail, token_type=None):
         super().__init__(status_code, detail)
-    
+        self.token_type = token_type
+        
+    def __str__(self):
+        return f"[{self.token_type}] {self.status_code}. {self.detail}"

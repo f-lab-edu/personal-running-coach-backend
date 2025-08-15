@@ -7,6 +7,7 @@ from config.exceptions import TokenExpiredError, TokenInvalidError, TokenError
 from config.logger import get_logger
 from infra.db.storage import repo
 from infra.security import encrypt_token
+from config.settings import security
 
 logger = get_logger(__file__)
 
@@ -44,7 +45,10 @@ class AuthHandler():
             refresh = self.token_adapter.create_refresh_token(user_id=user_id)
             
             # 리프레시 토큰 암호화 저장
-            encrypted = encrypt_token(refresh.refresh_token)
+            encrypted = encrypt_token(data=refresh.refresh_token,
+                                      key=security.encryption_key_refresh,
+                                      token_type="account_refresh"
+                                      )
             await repo.add_refresh_token(
                 user_id=res.id, token=encrypted, db=self.db
             )        

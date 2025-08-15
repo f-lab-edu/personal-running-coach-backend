@@ -12,9 +12,9 @@ class CommonConfig(BaseSettings):
     
 class SecurityConfig(CommonConfig):
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS")
-    encryption_key: str = Field(alias="ENCRYPTION_KEY")
+    encryption_key_refresh: str = Field(alias="ENCRYPTION_KEY_REFRESH")
     
-    @field_validator("encryption_key")
+    @field_validator("encryption_key_refresh")
     def validate_encryption_key(cls, v:str) -> str:
         if len(v) != 44:
             raise ValueError("Encryption key length not valid")

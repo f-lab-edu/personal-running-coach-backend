@@ -2,11 +2,15 @@
 
 """
 import bcrypt
-from cryptography.fernet import Fernet
-from config.settings import security
+from cryptography.fernet import Fernet, InvalidToken
 from fastapi.concurrency import run_in_threadpool
 
-fernet = Fernet(security.encryption_key.encode())
+from config.settings import security
+from config.exceptions import TokenInvalidError
+from config.logger import get_logger
+
+logger = get_logger(__file__)
+
 
 # bcrypt = 단방향 해시
 # 비밀번호 해시 후 솔트와 함께 저장.
@@ -27,10 +31,20 @@ async def verify_password(pwd:str, hashed:str)->bool:
     return await run_in_threadpool(_verify_password, pwd, hashed)
 
 
-#토큰 암호화
-def encrypt_token(token: str) -> str:
-    return fernet.encrypt(token.encode()).decode()
+# 공통 암호화 함수
+def encrypt_token(data: str, key: bytes, token_type:str = None) -> str:
+    try:
+        fernet = Fernet(key)
+        return fernet.encrypt(data.encode()).decode()
+    except Exception:
+        raise TokenInvalidError(status_code=500, detail="Token encryption failed", token_type="internal")
 
-#토큰 복호화
-def decrypt_token(token_encrypted: str) -> str:
-    return fernet.decrypt(token_encrypted.encode()).decode()
+# 공통 복호화 함수
+def decrypt_token(token_encrypted: str, key: bytes, token_type:str = None) -> str:
+    fernet = Fernet(key)
+    try:
+        return fernet.decrypt(token_encrypted.encode()).decode()
+    except InvalidToken:
+        raise TokenInvalidError(status_code=401, detail="Invalid token")
+    except Exception:
+        raise TokenInvalidError(status_code=500, detail="Token decryption failed", token_type=token_type)

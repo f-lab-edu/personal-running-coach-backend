@@ -1,4 +1,3 @@
-import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -9,8 +8,9 @@ from ports.account_port import AccountPort
 from schemas.models import AccountResponse
 from infra.db.orm.models import User
 from infra.db.storage import repo
+from infra.security import hash_password, verify_password, decrypt_token, TokenInvalidError
 from config.logger import get_logger
-from infra.security import hash_password, verify_password, decrypt_token
+from config.settings import security
 
 
 logger = get_logger(__name__)
@@ -211,7 +211,10 @@ class AccountAdapter(AccountPort):
                 return False
             
             # 복호화
-            decrypted = decrypt_token(db_refresh)
+            decrypted = decrypt_token(token_encrypted= db_refresh, 
+                                      key=security.encryption_key_refresh,
+                                      token_type="account_refresh"
+                                      )
             
             # 토큰 미스매치
             return decrypted == refresh_token
@@ -219,6 +222,9 @@ class AccountAdapter(AccountPort):
             
         except HTTPException:
             raise
+        except TokenInvalidError as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
         except Exception as e:
             logger.exception(str(e))
             raise HTTPException(status_code=500, detail="Internal server error")
