@@ -4,6 +4,10 @@ from schemas.models import AccountResponse
 
 router = APIRouter(prefix="/profile")
 
+@router.put("/me")
+async def update_info(data:AccountResponse):
+    # 현재 사용자 정보 받기
+    return
 
 @router.put("/update")
 async def update_info(data:AccountResponse):

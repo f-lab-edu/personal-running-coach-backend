@@ -1,29 +1,47 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
+from uuid import UUID
 
 
 
 class TokenPayload(BaseModel):  ## jwt payload 용
-    user_id:str
+    user_id:UUID
     exp:int
-    issued_at:int
+    iat:int
     token_type:str = 'access'  # or "refresh"
     
-    
+
+############### 응답모델
 class TokenResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
-    token_type:str = "bearer "
-    exp:int
-
 
 class AccountResponse(BaseModel):
-    id:int
-    email:str
-    pwd_hash:str
-    name:str
-    sns:Optional[str] = None
+    id: UUID
+    email: EmailStr
+    name: Optional[str] = None  # Make name optional
+    provider: str = "local"  # Default to local
+    
+
+
+####### 요청 모델
+# 일반 로그인
+class LoginRequest(BaseModel):
+    email: EmailStr
+    pwd: str 
+
+# 회원가입 요청
+class SignupRequest(BaseModel):
+    email: EmailStr
+    pwd: str
+    name: str
+
+# 토큰 로그인
+class RefreshTokenRequest(BaseModel):
+    refresh_token:str
+    
+########
 
 class TrainSession(BaseModel):
     session_id:str
@@ -33,13 +51,13 @@ class TrainSession(BaseModel):
     
     
 class TrainGoal(BaseModel):
-    user_id:str
+    user_id:UUID
     goal:str
     target_date:datetime
     created_at:datetime
     
 class CoachAdvice(BaseModel):
-    user_id:str
+    user_id:UUID
     created_at:datetime
     advice:str
     
