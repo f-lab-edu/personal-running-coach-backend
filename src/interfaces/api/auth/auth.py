@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from infra.db.storage.session import get_session
-from interfaces.api.auth_google import google_router
+from src.interfaces.api.auth.auth_google import google_router
 from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest
 
 from use_cases.auth.auth import AuthHandler

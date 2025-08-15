@@ -13,7 +13,7 @@ class User(SQLModel, table=True):
     provider: str = Field(default="local")  # Default to "local" for email/password users
 
     tokens: List["Token"] = Relationship(back_populates="user")
-    sns_connects: List["SNSConnect"] = Relationship(back_populates="user")
+    third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user")
     train_sessions: List["TrainSession"] = Relationship(back_populates="user")
     llms: List["LLM"] = Relationship(back_populates="user")
 
@@ -21,16 +21,24 @@ class Token(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
     refresh_token: str
+    # expires_at: int  # TODO: 토큰 만료 로직
     
     user: Optional[User] = Relationship(back_populates="tokens")
 
-class SNSConnect(SQLModel, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(foreign_key="user.id")
-    provider: str
-    sns_id: str
 
-    user: Optional[User] = Relationship(back_populates="sns_connects")
+class ThirdPartyToken(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True)
+    provider: str  # 'strava', 'google', 'naver' 등
+    provider_user_id:str # 외부 서비스 아이디
+    access_token: str
+    refresh_token: str
+    expires_at: int  # UNIX timestamp 혹은 datetime으로 변경 가능
+    extra_data: Optional[str] = None  
+
+    user: Optional["User"] = Relationship(back_populates="third_party_tokens")
+    
+    
 
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)

@@ -46,9 +46,19 @@ class GoogleConfig(CommonConfig):
     auth_endpoint: str = Field(default="", alias="GOOGLE_AUTH_ENDPOINT")
     token_url:str = Field(default="https://oauth2.googleapis.com/token")
 
+class StravaConfig(CommonConfig):
+    client_id: str = Field(default="", alias="STRAVA_CLIENT_ID")
+    client_secret: str = Field(default="", alias="STRAVA_CLIENT_SECRET")
+    redirect_uri: str = Field(default="", alias="STRAVA_REDIRECT_URI")
+    scope: str = Field(default="", alias="STRAVA_SCOPE")
+    token_url: str = Field(default="https://www.strava.com/oauth/token", alias="STRAVA_TOKEN_URL")
+    api_url: str = Field(default="https://www.strava.com/api/v3/", alias="STRAVA_API_URL")
+    auth_endpoint: str = Field(default="https://www.strava.com/oauth/authorize", alias="STRAVA_AUTH_ENDPOINT")
+
 db = DatabaseConfig()
 cors = CORSConfig()
 web = WebConfig()
 google = GoogleConfig()
 jwt_config = JWTConfig()
 security = SecurityConfig()
+strava = StravaConfig()
