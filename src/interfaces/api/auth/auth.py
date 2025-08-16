@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from infra.db.storage.session import get_session
-from src.interfaces.api.auth.auth_google import google_router
+from interfaces.api.auth.auth_google import google_router
+from interfaces.api.auth.auth_strava import strava_router
 from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest
 
 from use_cases.auth.auth import AuthHandler
@@ -12,6 +13,7 @@ from config import constants
 
 router = APIRouter(prefix="/auth", tags=['auth'])
 router.include_router(google_router, tags=None)
+router.include_router(strava_router, tags=None)
 auth_scheme = HTTPBearer()
 
 def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:

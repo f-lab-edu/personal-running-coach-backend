@@ -16,6 +16,13 @@ class TokenPayload(BaseModel):  ## jwt payload 용
 class TokenResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
+    
+class LoginResponse(BaseModel):
+    id:UUID
+    email:EmailStr
+    name:Optional[str]=None
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
 
 class AccountResponse(BaseModel):
     id: UUID

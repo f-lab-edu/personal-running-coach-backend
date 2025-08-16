@@ -1,6 +1,6 @@
 .venv
 .env
 __pycache__
-test.py
+test*
 study_*
 db.sqlite3

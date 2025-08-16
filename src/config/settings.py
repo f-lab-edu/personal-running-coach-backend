@@ -13,8 +13,10 @@ class CommonConfig(BaseSettings):
 class SecurityConfig(CommonConfig):
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS")
     encryption_key_refresh: str = Field(alias="ENCRYPTION_KEY_REFRESH")
+    encryption_key_strava: str = Field(alias="ENCRYPTION_KEY_STRAVA")
     
-    @field_validator("encryption_key_refresh")
+    
+    @field_validator("encryption_key_refresh", "encryption_key_strava")
     def validate_encryption_key(cls, v:str) -> str:
         if len(v) != 44:
             raise ValueError("Encryption key length not valid")

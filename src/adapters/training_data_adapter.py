@@ -1,9 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from src.ports.training_data_port import TrainingDataPort
+from ports.training_data_port import TrainingDataPort
 from typing import Optional
-from config.settings import strava
 
 
 class StravaAdapter(TrainingDataPort):

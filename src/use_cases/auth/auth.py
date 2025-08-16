@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from adapters import AccountAdapter, TokenAdapter
 from schemas.models import TokenResponse
-from config.exceptions import TokenExpiredError, TokenInvalidError, TokenError
+from config.exceptions import TokenExpiredError, TokenInvalidError
 from config.logger import get_logger
 from infra.db.storage import repo
 from infra.security import encrypt_token
@@ -33,11 +33,7 @@ class AuthHandler():
 
         try:
             res = await self.account_adapter.login_account(email, pwd)
-        except Exception as e:
-            logger.exception(str(e))
-            raise
-        else:
-            
+
             user_id = str(res.id)
 
             # 토큰 발급
@@ -51,12 +47,24 @@ class AuthHandler():
                                       )
             await repo.add_refresh_token(
                 user_id=res.id, token=encrypted, db=self.db
-            )        
+            )
+                
+            return TokenResponse(
+                access_token=access.access_token,
+                refresh_token=refresh.refresh_token
+            )
+            
+        except HTTPException:
+            raise
+
+        except TokenInvalidError as e:
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
+
         
-        return TokenResponse(
-            access_token=access.access_token,
-            refresh_token=refresh.refresh_token
-        )
     
     async def signup(self, email:str, pwd:str, name:str)->bool:
         """회원가입"""

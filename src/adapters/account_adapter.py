@@ -104,7 +104,6 @@ class AccountAdapter(AccountPort):
         except HTTPException:
             raise
         except Exception as e:
-            logger.exception(str(e))
             raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
         
     async def update_account(self, email: str, pwd: str, name: str) -> None:
