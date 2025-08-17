@@ -4,7 +4,7 @@ import urllib.parse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infra.db.storage.session import get_session
-
+from schemas.models import LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from use_cases.auth.oauth_google import GoogleHandler
@@ -33,7 +33,7 @@ async def login_with_google():
     return RedirectResponse(url)
 
 
-@google_router.get("/callback")
+@google_router.get("/callback", response_model=LoginResponse)
 async def google_callback(request:Request,
                           google_handler:GoogleHandler = Depends(get_handler)):
     # get return code from google login

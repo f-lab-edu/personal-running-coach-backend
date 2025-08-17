@@ -6,7 +6,7 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
-from schemas.models import TokenResponse
+from schemas.models import LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
@@ -57,7 +57,7 @@ class GoogleHandler:
     
     
     
-    async def handle_login(self, auth_code: str) -> TokenResponse:
+    async def handle_login(self, auth_code: str) -> LoginResponse:
         """
         구글 로그인.
         구글 authorization code 를 받아 엑세스 토큰 요청.
@@ -65,7 +65,7 @@ class GoogleHandler:
         id_token 검증 후 유저정보 추출. 
         기존 db에 리프레시토큰이 존재하는지 확인
         유저정보로 로그인
-        return: TokenResponse
+        return: LoginResponse
         """
         try:
             # 1. google authcode 에서 access token 요청
@@ -134,7 +134,10 @@ class GoogleHandler:
             
             
             # 토큰 리턴
-            return TokenResponse(
+            return LoginResponse(
+                id=account_response.id,
+                email=account_response.email,
+                name=account_response.name,
                 access_token=access_token,
                 refresh_token=refresh_token,
             )

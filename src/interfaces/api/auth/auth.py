@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from infra.db.storage.session import get_session
 from interfaces.api.auth.auth_google import google_router
 from interfaces.api.auth.auth_strava import strava_router
-from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest
+from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest, LoginResponse
 
 from use_cases.auth.auth import AuthHandler
 from adapters import AccountAdapter, TokenAdapter
@@ -28,17 +28,17 @@ def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:
     
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=LoginResponse)
 async def login(request:LoginRequest, 
                 auth_handler:AuthHandler=Depends(get_auth_handler)
                 ):
     """로그인.
         parameter: Body(email, pwd)
-        return: payload (access, refresh, exp ...)
+        return: LoginResponse (id, email, name, access_token, refresh_token)
     """
     
-    token_response = await auth_handler.login(request.email, request.pwd)
-    return token_response
+    login_response = await auth_handler.login(request.email, request.pwd)
+    return login_response
 
 
 @router.post("/signup")

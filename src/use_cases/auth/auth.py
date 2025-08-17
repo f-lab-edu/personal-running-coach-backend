@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from adapters import AccountAdapter, TokenAdapter
-from schemas.models import TokenResponse
+from schemas.models import LoginResponse
 from config.exceptions import TokenExpiredError, TokenInvalidError
 from config.logger import get_logger
 from infra.db.storage import repo
@@ -25,7 +25,7 @@ class AuthHandler():
         self.token_adapter = token_adapter
     
     
-    async def login(self, email:str, pwd:str)->TokenResponse:
+    async def login(self, email:str, pwd:str)->LoginResponse:
         """
         수동로그인 
         (아이디,비밀번호 미스매치) 실패시 401 에러
@@ -49,7 +49,10 @@ class AuthHandler():
                 user_id=res.id, token=encrypted, db=self.db
             )
                 
-            return TokenResponse(
+            return LoginResponse(
+                id=res.id,
+                email=res.email,
+                name=res.name,
                 access_token=access.access_token,
                 refresh_token=refresh.refresh_token
             )
