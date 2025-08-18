@@ -8,7 +8,7 @@ class AccountPort(ABC):
         ...
         
     @abstractmethod
-    def get_account(self, token:str)->AccountResponse : 
+    def get_account(self, email:str)->AccountResponse : 
         ...
         
     @abstractmethod

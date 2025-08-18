@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from infra.db.storage.session import get_session
 from interfaces.api.auth.auth_google import google_router
 from interfaces.api.auth.auth_strava import strava_router
-from schemas.models import TokenResponse, LoginRequest, SignupRequest, RefreshTokenRequest, LoginResponse
+from schemas.models import LoginRequest, SignupRequest, LoginResponse
 
 from use_cases.auth.auth import AuthHandler
 from adapters import AccountAdapter, TokenAdapter
@@ -34,11 +34,11 @@ async def login(request:LoginRequest,
                 ):
     """로그인.
         parameter: Body(email, pwd)
-        return: LoginResponse (id, email, name, access_token, refresh_token)
+        return: LoginResponse (token, user info)
     """
     
-    login_response = await auth_handler.login(request.email, request.pwd)
-    return login_response
+    token_response = await auth_handler.login(request.email, request.pwd)
+    return token_response
 
 
 @router.post("/signup")
@@ -52,21 +52,26 @@ async def signup(request:SignupRequest,
     
     
 
-@router.post("/token", response_model=TokenResponse)
-async def refresh(
-    refresh_request:RefreshTokenRequest,
+@router.post("/token", response_model=LoginResponse)
+async def login_token(
     access_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
     auth_handler:AuthHandler=Depends(get_auth_handler)):
     """토큰 로그인
         header: access_token
-        body: refresh_token
-        
-        return: TokenResponse
+        return: LoginResponse
     """
     access_token = access_cred.credentials
-    refresh_token = refresh_request.refresh_token
-    
-    return await auth_handler.login_token(access=access_token, 
-                                          refresh=refresh_token)
+    return await auth_handler.login_token(access=access_token)
+
+@router.post("/refresh", response_model=LoginResponse)
+async def refresh(
+    refresh_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    auth_handler:AuthHandler=Depends(get_auth_handler)):
+    """토큰 재발급
+        header: refresh_token
+        return: LoginResponse
+    """
+    refresh_token = refresh_cred.credentials
+    return await auth_handler.refresh_token(access=refresh_token)
     
     

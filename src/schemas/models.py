@@ -16,19 +16,16 @@ class TokenPayload(BaseModel):  ## jwt payload 용
 class TokenResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
-    
-class LoginResponse(BaseModel):
-    id:UUID
-    email:EmailStr
-    name:Optional[str]=None
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
 
 class AccountResponse(BaseModel):
     id: UUID
     email: EmailStr
-    name: Optional[str] = None  # Make name optional
-    provider: str = "local"  # Default to local
+    name: Optional[str] = None 
+    provider: str = "local"
+    
+class LoginResponse(BaseModel):
+    token: Optional[TokenResponse] = None
+    user: AccountResponse
     
 
 
@@ -43,10 +40,6 @@ class SignupRequest(BaseModel):
     email: EmailStr
     pwd: str
     name: str
-
-# 토큰 로그인
-class RefreshTokenRequest(BaseModel):
-    refresh_token:str
     
 ########
 

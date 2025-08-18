@@ -40,6 +40,6 @@ async def google_callback(request:Request,
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="missing code")
-    token = await google_handler.handle_login(auth_code=code)
+    login_res = await google_handler.handle_login(auth_code=code)
     
-    return token
+    return login_res

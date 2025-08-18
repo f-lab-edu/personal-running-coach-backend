@@ -6,7 +6,7 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
-from schemas.models import LoginResponse
+from schemas.models import TokenResponse, LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
@@ -102,12 +102,9 @@ class GoogleHandler:
                 provider="google", 
                 name=name
             )
-
-            user_id = str(account_response.id)
             
             # 액세스 토큰 생성
-            access_token = self.token_adapter.create_access_token(user_id=user_id).access_token
-            
+            access_token = self.token_adapter.create_access_token(user_id=account_response.id)
             
             # 4. 기존 리프레시 토큰 있는지 확인
             existing_token = await repo.get_refresh_token(user_id=account_response.id,
@@ -119,7 +116,7 @@ class GoogleHandler:
 
             else:
                 # 5. 새 리프레시 토큰 발급
-                refresh_token = self.token_adapter.create_refresh_token(user_id=user_id).refresh_token
+                refresh_token = self.token_adapter.create_refresh_token(user_id=account_response.id)
                 
                 # 리프레시 토큰 암호화
                 encrypted = encrypt_token(data=refresh_token,
@@ -133,13 +130,13 @@ class GoogleHandler:
                 )        
             
             
-            # 토큰 리턴
+            # 로그인 리턴
             return LoginResponse(
-                id=account_response.id,
-                email=account_response.email,
-                name=account_response.name,
+                TokenResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
+                ),
+                user=account_response
             )
 
         except HTTPException:

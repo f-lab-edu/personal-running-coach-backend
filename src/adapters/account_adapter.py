@@ -76,6 +76,32 @@ class AccountAdapter(AccountPort):
         except Exception as e:
             logger.exception(f"Error getting account: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def get_account_by_id(self, user_id: str) -> AccountResponse:
+        """사용자 ID로 유저정보 조회"""
+        try:
+            user_uuid = UUID(user_id)
+            
+            # Get user from database by ID
+            user = await repo.get_user_by_id(user_id=user_uuid, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                provider=user.provider
+            )
+            
+        except HTTPException:
+            raise
+        except ValueError as e:
+            logger.error(f"Invalid user ID format: {e}")
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        except Exception as e:
+            logger.exception(f"Error getting account by ID: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
         
     async def login_account(self, email: str, pwd: str) -> AccountResponse:
         """
