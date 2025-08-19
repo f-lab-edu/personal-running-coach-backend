@@ -119,4 +119,8 @@ class TokenAdapter(TokenPort):
         except JWTError as e:
             logger.exception(f"Token verification error {e}")
             raise TokenInvalidError(status_code=401, detail=f"invalid token")
-        
+    
+    def invalidate_refresh_token(self, jwt_str:str)->bool: 
+        ### 토큰 삭제
+        ...
+    

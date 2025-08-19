@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
-from fastapi.concurrency import run_in_threadpool
 from typing import Optional
 from uuid import UUID
 
@@ -33,7 +32,7 @@ class AccountAdapter(AccountPort):
             # Hash password only for local accounts
             hashed_password = None
             if provider == "local":
-                hashed_password = await run_in_threadpool(hash_password, pwd)
+                hashed_password = await hash_password(pwd)
             
             # Create new user
             new_user = User(
@@ -116,7 +115,7 @@ class AccountAdapter(AccountPort):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
             # 비밀번호 확인
-            is_valid = await run_in_threadpool(verify_password, pwd, user.hashed_pwd )
+            is_valid = await verify_password(pwd, user.hashed_pwd)
             if not is_valid:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
@@ -148,7 +147,7 @@ class AccountAdapter(AccountPort):
             if name is not None:
                 user.name = name
             if pwd is not None and user.provider == "local":
-                user.hashed_pwd = await run_in_threadpool(hash_password, pwd)
+                user.hashed_pwd = await hash_password(pwd)
             
             await repo.update_user(user=user, db=self.db)
 

@@ -135,10 +135,10 @@ class GoogleHandler:
             
             # 로그인 리턴
             return LoginResponse(
-                TokenResponse(
-                access_token=access_token,
-                refresh_token=refresh_token,
-                ),
+                token=TokenResponse(
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    ),
                 user=account_response
             )
 

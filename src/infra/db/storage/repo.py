@@ -86,9 +86,14 @@ async def get_refresh_token(user_id:UUID,
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def add_refresh_token(user_id:UUID, token:str,
+async def add_refresh_token(user_id:UUID, 
+                            token:str,
+                            expires_at: int,
                              db: AsyncSession) -> None:
-    token = Token(user_id=user_id, refresh_token=token)
+    token = Token(user_id=user_id, 
+                  refresh_token=token,
+                  expires_at=expires_at
+                  )
 
     try:
         db.add(token)
