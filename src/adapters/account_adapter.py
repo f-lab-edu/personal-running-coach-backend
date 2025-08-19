@@ -255,3 +255,9 @@ class AccountAdapter(AccountPort):
             raise HTTPException(status_code=500, detail="Internal server error")
             
         
+    
+    
+
+    # # TODO: db 에 저장된 토큰 삭제
+    # async def invalidate_refresh_token(self, jwt_str:str)->bool: 
+    #     ...

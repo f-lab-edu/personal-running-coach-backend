@@ -11,6 +11,10 @@ class TokenPayload(BaseModel):  ## jwt payload 용
     iat:int
     token_type:str = 'access'  # or "refresh"
     
+class RefreshTokenResult(BaseModel):
+    token:str
+    expires_at:int
+    
 
 ############### 응답모델
 class TokenResponse(BaseModel):

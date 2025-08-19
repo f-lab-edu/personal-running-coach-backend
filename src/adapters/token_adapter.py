@@ -3,7 +3,7 @@ from jose import jwt, JWTError
 from uuid import UUID
 
 from ports.token_port import TokenPort
-from schemas.models import TokenPayload
+from schemas.models import TokenPayload, RefreshTokenResult
 from config.logger import get_logger
 from config.exceptions import TokenExpiredError, TokenInvalidError
 from config import constants as con
@@ -48,10 +48,12 @@ class TokenAdapter(TokenPort):
         return access_jwt
         
 
-    def create_refresh_token(self, user_id:UUID)->str: 
+    def create_refresh_token(self, user_id:UUID) -> RefreshTokenResult: 
         """리프레시 jwt 토큰 생성. 
 
-            return : jwt 문자열
+            return : RefreshTokenResult
+                token: jwt문자열
+                expires_at: 타임스탬프 (int)
         """ 
         now = datetime.now(timezone.utc)
         expires = now + timedelta(days=self.refresh_token_exp)
@@ -70,9 +72,7 @@ class TokenAdapter(TokenPort):
             logger.exception(f"jwt encoding error {e}")
             raise TokenInvalidError(status_code=500, detail="error while creating token")
 
-        # token = TokenResponse(refresh_token=refresh)
-        
-        return refresh_jwt
+        return RefreshTokenResult(token=refresh_jwt, expires_at=expires)
 
 
     def verify_access_token(self, token_str:str)->TokenPayload: 
@@ -120,17 +120,3 @@ class TokenAdapter(TokenPort):
             logger.exception(f"Token verification error {e}")
             raise TokenInvalidError(status_code=401, detail=f"invalid token")
         
-        
-        
-        
-    ### 토큰 삭제
-    def invalidate_refresh_token(self, jwt_str:str)->bool: 
-        # TODO: db 에 저장된 토큰 삭제
-        ...
-    
-    
-    # def create_login_token(self):
-    #     ...
-        
-    # def verify_login_token(self):
-    #     ...

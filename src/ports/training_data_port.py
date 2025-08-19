@@ -5,8 +5,8 @@ class TrainingDataPort(ABC):
     """훈련 데이터를 수집하는 포트 인터페이스"""
     
     @abstractmethod
-    async def connect(self, user_id: str, auth_code: str) -> bool:
-        """플랫폼에 연결"""
+    async def connect(self, user_id: str, auth_code: str) -> dict:
+        """플랫폼에 연결. 플랫폼 토큰 받기"""
         ...
     
     @abstractmethod
@@ -20,6 +20,6 @@ class TrainingDataPort(ABC):
         ...
     
     @abstractmethod
-    async def refresh_token(self, user_id: str) -> bool:
-        """토큰 갱신"""
+    async def refresh_token(self, user_id: str) -> dict:
+        """플랫폼 토큰 갱신"""
         ...

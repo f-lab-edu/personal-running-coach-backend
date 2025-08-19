@@ -6,7 +6,7 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
-from schemas.models import TokenResponse, LoginResponse
+from schemas.models import TokenResponse, LoginResponse, RefreshTokenResult
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
@@ -110,13 +110,15 @@ class GoogleHandler:
             existing_token = await repo.get_refresh_token(user_id=account_response.id,
                                                         db=self.db
                                                         )
+            # 기존 토큰 존재시 기존 토큰 반환
             if existing_token:
                 refresh_token = decrypt_token(existing_token,
                                         key=security.encryption_key_refresh)
 
             else:
                 # 5. 새 리프레시 토큰 발급
-                refresh_token = self.token_adapter.create_refresh_token(user_id=account_response.id)
+                refresh_result = self.token_adapter.create_refresh_token(user_id=account_response.id)
+                refresh_token = refresh_result.token
                 
                 # 리프레시 토큰 암호화
                 encrypted = encrypt_token(data=refresh_token,
@@ -126,8 +128,9 @@ class GoogleHandler:
             
                 # 리프레시 토큰 저장
                 await repo.add_refresh_token(
-                    user_id=account_response.id, token=encrypted, db=self.db
-                )        
+                    user_id=account_response.id, token=encrypted, 
+                    expires_at=refresh_result.expires_at, db=self.db
+                    )        
             
             
             # 로그인 리턴

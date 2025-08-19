@@ -21,7 +21,7 @@ class Token(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
     refresh_token: str
-    # expires_at: int  # TODO: 토큰 만료 로직
+    expires_at: int
     
     user: Optional[User] = Relationship(back_populates="tokens")
 

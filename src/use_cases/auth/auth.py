@@ -36,21 +36,23 @@ class AuthHandler():
 
             # 토큰 발급
             access = self.token_adapter.create_access_token(user_id=acct_response.id)
-            refresh = self.token_adapter.create_refresh_token(user_id=acct_response.id)
+            refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
             
             # 리프레시 토큰 암호화 저장
-            encrypted = encrypt_token(data=refresh,
+            encrypted = encrypt_token(data=refresh_result.token,
                                       key=security.encryption_key_refresh,
                                       token_type="account_refresh"
                                       )
             await repo.add_refresh_token(
-                user_id=acct_response.id, token=encrypted, db=self.db
+                user_id=acct_response.id, token=encrypted, 
+                expires_at=refresh_result.expires_at,
+                db=self.db
             )
                 
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access,
-                    refresh_token=refresh
+                    refresh_token=refresh_result.token
                 ),
                 user=acct_response
             )
