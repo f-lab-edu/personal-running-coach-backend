@@ -137,7 +137,7 @@ class GoogleHandler:
                 user_id= account_response.id,
                 db=self.db
             )
-            
+            connected_li = [x.provider for x in third_parties]
             
             # 로그인 리턴
             return LoginResponse(
@@ -146,7 +146,7 @@ class GoogleHandler:
                     refresh_token=refresh_token,
                     ),
                 user=account_response,
-                connected=third_parties
+                connected=connected_li
             )
 
         except HTTPException:
