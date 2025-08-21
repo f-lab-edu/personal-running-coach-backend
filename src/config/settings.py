@@ -35,6 +35,10 @@ class CORSConfig(CommonConfig):
     credentials: bool = Field(default=True, alias="CORS_CREDENTIALS")
     methods: str = Field(default="*", alias="CORS_METHODS")
     headers: str = Field(default="*", alias="CORS_HEADERS")
+    
+    @field_validator("origins", mode="after")  # after로 처리
+    def split_origins(cls, v):
+        return [o.strip() for o in v.split(",")]
 
 class WebConfig(CommonConfig):
     host: str = Field(default="0.0.0.0", alias="WEB_HOST")

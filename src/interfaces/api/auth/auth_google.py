@@ -1,4 +1,16 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+"""
+구글 oauth2 로그인 흐름
+1. 클라이언트가 /login 호출
+2. 구글 로그인 페이지로 리다이렉트
+3. 클라이언트가 구글 아이디로 로그인
+4. 구글이 프론트 주소로 리다이렉트
+5. 프론트에서 code 받아서 다시 callback 호출
+6. 로그인 처리 후 토큰 반환 
+
+"""
+
+
+from fastapi import APIRouter, Request, HTTPException, Depends, Body
 from starlette.responses import RedirectResponse
 import urllib.parse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +35,7 @@ def get_handler(db:AsyncSession=Depends(get_session))->GoogleHandler:
 async def login_with_google():
     params = {
         "client_id": google.client_id,
-        "redirect_uri": google.redirect_uri,
+        "redirect_uri": google.redirect_uri, ## 프론트 콜백 uri
         "response_type": "code", 
         "scope": google.scope,
         "access_type": "offline",  # online 
@@ -33,11 +45,9 @@ async def login_with_google():
     return RedirectResponse(url)
 
 
-@google_router.get("/callback", response_model=LoginResponse)
-async def google_callback(request:Request,
+@google_router.post("/callback", response_model=LoginResponse)
+async def google_callback(code:str = Body(..., embed=True),
                           google_handler:GoogleHandler = Depends(get_handler)):
-    # get return code from google login
-    code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="missing code")
     login_res = await google_handler.handle_login(auth_code=code)

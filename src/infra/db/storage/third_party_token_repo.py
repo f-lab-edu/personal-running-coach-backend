@@ -180,7 +180,7 @@ async def get_all_user_tokens(
                 ThirdPartyToken.user_id == user_id
             )
         )
-        return res.scalar_one_or_none()
+        return res.scalars().all()
         
     except Exception as e:
         logger.exception(str(e))

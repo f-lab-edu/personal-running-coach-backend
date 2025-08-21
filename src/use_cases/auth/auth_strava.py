@@ -80,10 +80,16 @@ class StravaHandler:
         
         except HTTPException as e:
             logger.exception(str(e))
-            raise
+            # raise
+            status = {"status": "fail",
+                  "msg":f"str{e}"
+                  }
         except TokenInvalidError as e:
             logger.exception(str(e))
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
+            # raise HTTPException(status_code=e.status_code, detail=e.detail)
+            status = {"status": "fail",
+                  "msg":f"str{e}"
+                  }
             
         except Exception as e:
             logger.exception(str(e))
