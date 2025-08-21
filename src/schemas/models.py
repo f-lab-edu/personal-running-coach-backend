@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional, List
 from uuid import UUID
 
 
@@ -30,6 +30,7 @@ class AccountResponse(BaseModel):
 class LoginResponse(BaseModel):
     token: Optional[TokenResponse] = None
     user: AccountResponse
+    connected: List[str] = []
     
 
 

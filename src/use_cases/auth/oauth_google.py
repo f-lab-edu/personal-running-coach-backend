@@ -6,11 +6,12 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
-from schemas.models import TokenResponse, LoginResponse, RefreshTokenResult
+from schemas.models import TokenResponse, LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
 from infra.security import encrypt_token, decrypt_token, TokenInvalidError
+from infra.db.storage.third_party_token_repo import get_all_user_tokens
 
 logger = get_logger(__file__)
 
@@ -132,6 +133,11 @@ class GoogleHandler:
                     expires_at=refresh_result.expires_at, db=self.db
                     )        
             
+            third_parties = await get_all_user_tokens(
+                user_id= account_response.id,
+                db=self.db
+            )
+            
             
             # 로그인 리턴
             return LoginResponse(
@@ -139,7 +145,8 @@ class GoogleHandler:
                     access_token=access_token,
                     refresh_token=refresh_token,
                     ),
-                user=account_response
+                user=account_response,
+                connected=third_parties
             )
 
         except HTTPException:

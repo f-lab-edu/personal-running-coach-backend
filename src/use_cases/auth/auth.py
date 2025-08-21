@@ -8,6 +8,8 @@ from config.logger import get_logger
 from infra.db.storage import repo
 from infra.security import encrypt_token
 from config.settings import security
+from infra.db.storage.third_party_token_repo import get_all_user_tokens
+
 
 logger = get_logger(__file__)
 
@@ -48,13 +50,20 @@ class AuthHandler():
                 expires_at=refresh_result.expires_at,
                 db=self.db
             )
+            
+            third_parties = await get_all_user_tokens(
+                user_id= acct_response.id,
+                db=self.db
+            )
+            connected_li = [x.provider for x in third_parties]
                 
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access,
                     refresh_token=refresh_result.token
                 ),
-                user=acct_response
+                user=acct_response,
+                connected=connected_li
             )
             
         except HTTPException:
@@ -93,6 +102,12 @@ class AuthHandler():
             # 액세스 토큰 유효. user_id 로 반환 사용자 정보 조회 
             user = await repo.get_user_by_id(user_id=access_payload.user_id,
                                 db=self.db)
+            
+            third_parties = await get_all_user_tokens(
+                user_id= access_payload.user_id,
+                db=self.db
+            )
+            connected_li = [x.provider for x in third_parties]
 
             return LoginResponse(
                 user=AccountResponse(
@@ -100,7 +115,8 @@ class AuthHandler():
                     email=user.email,
                     name=user.name,
                     provider=user.provider
-                )
+                ),
+                connected=connected_li
             ) 
 
         except HTTPException:
@@ -140,6 +156,12 @@ class AuthHandler():
             user = await repo.get_user_by_id(user_id=refresh_payload.user_id,
                                 db=self.db)
             
+            third_parties = await get_all_user_tokens(
+                user_id= refresh_payload.user_id,
+                db=self.db
+            )
+            connected_li = [x.provider for x in third_parties]
+            
             return LoginResponse(
                 token=TokenResponse(
                     access_token=new_access,
@@ -150,7 +172,8 @@ class AuthHandler():
                     email=user.email,
                     name=user.name,
                     provider=user.provider
-                )
+                ),
+                connected=connected_li
             )
         
         
