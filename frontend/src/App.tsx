@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Routes, Route, Link, useNavigate} from 'react-router-dom';
+import { Routes, Route, Link, useNavigate} from 'react-router-dom';
 
 // Placeholder pages
 import MainPage from './pages/MainPage.tsx';
