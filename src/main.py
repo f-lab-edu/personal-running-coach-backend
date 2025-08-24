@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from interfaces.api import routers
 from config import settings
@@ -16,6 +17,14 @@ async def lifespan(app:FastAPI):
 app = FastAPI(lifespan=lifespan)
 for r in routers:
     app.include_router(r)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors.origins,
+    allow_credentials=settings.cors.credentials,
+    allow_methods=settings.cors.methods,
+    allow_headers=settings.cors.headers,
+)
     
     
 if __name__ == "__main__":

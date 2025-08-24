@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional, List
 from uuid import UUID
 
 
@@ -11,6 +11,10 @@ class TokenPayload(BaseModel):  ## jwt payload 용
     iat:int
     token_type:str = 'access'  # or "refresh"
     
+class RefreshTokenResult(BaseModel):
+    token:str
+    expires_at:int
+    
 
 ############### 응답모델
 class TokenResponse(BaseModel):
@@ -20,8 +24,13 @@ class TokenResponse(BaseModel):
 class AccountResponse(BaseModel):
     id: UUID
     email: EmailStr
-    name: Optional[str] = None  # Make name optional
-    provider: str = "local"  # Default to local
+    name: Optional[str] = None 
+    provider: str = "local"
+    
+class LoginResponse(BaseModel):
+    token: Optional[TokenResponse] = None
+    user: AccountResponse
+    connected: List[str] = []
     
 
 
@@ -36,10 +45,6 @@ class SignupRequest(BaseModel):
     email: EmailStr
     pwd: str
     name: str
-
-# 토큰 로그인
-class RefreshTokenRequest(BaseModel):
-    refresh_token:str
     
 ########
 

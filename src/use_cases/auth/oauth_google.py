@@ -6,11 +6,12 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
-from schemas.models import TokenResponse
+from schemas.models import TokenResponse, LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
 from infra.security import encrypt_token, decrypt_token, TokenInvalidError
+from infra.db.storage.third_party_token_repo import get_all_user_tokens
 
 logger = get_logger(__file__)
 
@@ -57,7 +58,7 @@ class GoogleHandler:
     
     
     
-    async def handle_login(self, auth_code: str) -> TokenResponse:
+    async def handle_login(self, auth_code: str) -> LoginResponse:
         """
         구글 로그인.
         구글 authorization code 를 받아 엑세스 토큰 요청.
@@ -65,7 +66,7 @@ class GoogleHandler:
         id_token 검증 후 유저정보 추출. 
         기존 db에 리프레시토큰이 존재하는지 확인
         유저정보로 로그인
-        return: TokenResponse
+        return: LoginResponse
         """
         try:
             # 1. google authcode 에서 access token 요청
@@ -102,24 +103,23 @@ class GoogleHandler:
                 provider="google", 
                 name=name
             )
-
-            user_id = str(account_response.id)
             
             # 액세스 토큰 생성
-            access_token = self.token_adapter.create_access_token(user_id=user_id).access_token
-            
+            access_token = self.token_adapter.create_access_token(user_id=account_response.id)
             
             # 4. 기존 리프레시 토큰 있는지 확인
             existing_token = await repo.get_refresh_token(user_id=account_response.id,
                                                         db=self.db
                                                         )
+            # 기존 토큰 존재시 기존 토큰 반환
             if existing_token:
                 refresh_token = decrypt_token(existing_token,
                                         key=security.encryption_key_refresh)
 
             else:
                 # 5. 새 리프레시 토큰 발급
-                refresh_token = self.token_adapter.create_refresh_token(user_id=user_id).refresh_token
+                refresh_result = self.token_adapter.create_refresh_token(user_id=account_response.id)
+                refresh_token = refresh_result.token
                 
                 # 리프레시 토큰 암호화
                 encrypted = encrypt_token(data=refresh_token,
@@ -129,14 +129,24 @@ class GoogleHandler:
             
                 # 리프레시 토큰 저장
                 await repo.add_refresh_token(
-                    user_id=account_response.id, token=encrypted, db=self.db
-                )        
+                    user_id=account_response.id, token=encrypted, 
+                    expires_at=refresh_result.expires_at, db=self.db
+                    )        
             
+            third_parties = await get_all_user_tokens(
+                user_id= account_response.id,
+                db=self.db
+            )
+            connected_li = [x.provider for x in third_parties]
             
-            # 토큰 리턴
-            return TokenResponse(
-                access_token=access_token,
-                refresh_token=refresh_token,
+            # 로그인 리턴
+            return LoginResponse(
+                token=TokenResponse(
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    ),
+                user=account_response,
+                connected=connected_li
             )
 
         except HTTPException:

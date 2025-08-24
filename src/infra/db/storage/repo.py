@@ -21,6 +21,17 @@ async def get_user_by_email(email: str,
         logger.exception(str(e))
         raise HTTPException(status_code=400, detail=str(e))
 
+async def get_user_by_id(user_id: UUID,
+                         db: AsyncSession) -> User | None:
+    try:
+        res = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+        return res.scalar_one_or_none()
+    except Exception as e:
+        logger.exception(str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
         
 async def add_user(user: User,
                    db: AsyncSession) -> None:
@@ -75,9 +86,14 @@ async def get_refresh_token(user_id:UUID,
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def add_refresh_token(user_id:UUID, token:str,
+async def add_refresh_token(user_id:UUID, 
+                            token:str,
+                            expires_at: int,
                              db: AsyncSession) -> None:
-    token = Token(user_id=user_id, refresh_token=token)
+    token = Token(user_id=user_id, 
+                  refresh_token=token,
+                  expires_at=expires_at
+                  )
 
     try:
         db.add(token)

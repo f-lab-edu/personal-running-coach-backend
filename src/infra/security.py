@@ -37,7 +37,7 @@ def encrypt_token(data: str, key: bytes, token_type:str = None) -> str:
         fernet = Fernet(key)
         return fernet.encrypt(data.encode()).decode()
     except Exception:
-        raise TokenInvalidError(status_code=500, detail="Token encryption failed", token_type="internal")
+        raise TokenInvalidError(status_code=500, detail="Token encryption failed", token_type=token_type)
 
 # 공통 복호화 함수
 def decrypt_token(token_encrypted: str, key: bytes, token_type:str = None) -> str:

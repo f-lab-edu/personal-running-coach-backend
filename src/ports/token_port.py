@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
-from schemas.models import TokenPayload, TokenResponse
+from uuid import UUID
+
+from schemas.models import TokenPayload
 
 
 class TokenPort(ABC):
     
     
     @abstractmethod
-    def create_access_token(self, user_id:str)->TokenResponse: 
+    def create_access_token(self, user_id:UUID)->str: 
         ...
         
     @abstractmethod
-    def create_refresh_token(self, user_id:str)->TokenResponse: 
+    def create_refresh_token(self, user_id:UUID)->str: 
         ...
         
     @abstractmethod

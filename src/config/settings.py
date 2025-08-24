@@ -13,8 +13,10 @@ class CommonConfig(BaseSettings):
 class SecurityConfig(CommonConfig):
     bcrypt_rounds: int = Field(default=12, alias="BCRYPT_ROUNDS")
     encryption_key_refresh: str = Field(alias="ENCRYPTION_KEY_REFRESH")
+    encryption_key_strava: str = Field(alias="ENCRYPTION_KEY_STRAVA")
     
-    @field_validator("encryption_key_refresh")
+    
+    @field_validator("encryption_key_refresh", "encryption_key_strava")
     def validate_encryption_key(cls, v:str) -> str:
         if len(v) != 44:
             raise ValueError("Encryption key length not valid")
@@ -33,6 +35,10 @@ class CORSConfig(CommonConfig):
     credentials: bool = Field(default=True, alias="CORS_CREDENTIALS")
     methods: str = Field(default="*", alias="CORS_METHODS")
     headers: str = Field(default="*", alias="CORS_HEADERS")
+    
+    @field_validator("origins", mode="after")  # after로 처리
+    def split_origins(cls, v):
+        return [o.strip() for o in v.split(",")]
 
 class WebConfig(CommonConfig):
     host: str = Field(default="0.0.0.0", alias="WEB_HOST")
@@ -46,9 +52,19 @@ class GoogleConfig(CommonConfig):
     auth_endpoint: str = Field(default="", alias="GOOGLE_AUTH_ENDPOINT")
     token_url:str = Field(default="https://oauth2.googleapis.com/token")
 
+class StravaConfig(CommonConfig):
+    client_id: str = Field(default="", alias="STRAVA_CLIENT_ID")
+    client_secret: str = Field(default="", alias="STRAVA_CLIENT_SECRET")
+    redirect_uri: str = Field(default="", alias="STRAVA_REDIRECT_URI")
+    scope: str = Field(default="", alias="STRAVA_SCOPE")
+    token_url: str = Field(default="https://www.strava.com/oauth/token", alias="STRAVA_TOKEN_URL")
+    api_url: str = Field(default="https://www.strava.com/api/v3/", alias="STRAVA_API_URL")
+    auth_endpoint: str = Field(default="https://www.strava.com/oauth/authorize", alias="STRAVA_AUTH_ENDPOINT")
+
 db = DatabaseConfig()
 cors = CORSConfig()
 web = WebConfig()
 google = GoogleConfig()
 jwt_config = JWTConfig()
 security = SecurityConfig()
+strava = StravaConfig()

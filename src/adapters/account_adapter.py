@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
-from fastapi.concurrency import run_in_threadpool
 from typing import Optional
 from uuid import UUID
 
@@ -33,7 +32,7 @@ class AccountAdapter(AccountPort):
             # Hash password only for local accounts
             hashed_password = None
             if provider == "local":
-                hashed_password = await run_in_threadpool(hash_password, pwd)
+                hashed_password = await hash_password(pwd)
             
             # Create new user
             new_user = User(
@@ -76,6 +75,32 @@ class AccountAdapter(AccountPort):
         except Exception as e:
             logger.exception(f"Error getting account: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def get_account_by_id(self, user_id: str) -> AccountResponse:
+        """사용자 ID로 유저정보 조회"""
+        try:
+            user_uuid = UUID(user_id)
+            
+            # Get user from database by ID
+            user = await repo.get_user_by_id(user_id=user_uuid, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                provider=user.provider
+            )
+            
+        except HTTPException:
+            raise
+        except ValueError as e:
+            logger.error(f"Invalid user ID format: {e}")
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        except Exception as e:
+            logger.exception(f"Error getting account by ID: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
         
     async def login_account(self, email: str, pwd: str) -> AccountResponse:
         """
@@ -90,7 +115,7 @@ class AccountAdapter(AccountPort):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
             # 비밀번호 확인
-            is_valid = await run_in_threadpool(verify_password, pwd, user.hashed_pwd )
+            is_valid = await verify_password(pwd, user.hashed_pwd)
             if not is_valid:
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             
@@ -104,7 +129,6 @@ class AccountAdapter(AccountPort):
         except HTTPException:
             raise
         except Exception as e:
-            logger.exception(str(e))
             raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
         
     async def update_account(self, email: str, pwd: str, name: str) -> None:
@@ -123,7 +147,7 @@ class AccountAdapter(AccountPort):
             if name is not None:
                 user.name = name
             if pwd is not None and user.provider == "local":
-                user.hashed_pwd = await run_in_threadpool(hash_password, pwd)
+                user.hashed_pwd = await hash_password(pwd)
             
             await repo.update_user(user=user, db=self.db)
 
@@ -230,3 +254,9 @@ class AccountAdapter(AccountPort):
             raise HTTPException(status_code=500, detail="Internal server error")
             
         
+    
+    
+
+    # # TODO: db 에 저장된 토큰 삭제
+    # async def invalidate_refresh_token(self, jwt_str:str)->bool: 
+    #     ...
