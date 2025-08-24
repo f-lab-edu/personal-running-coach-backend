@@ -18,6 +18,11 @@ class TrainingDataPort(ABC):
     async def fetch_activities(self, user_id: str, after_date: Optional[str] = None) -> list:
         """훈련 활동 데이터 가져오기"""
         ...
+        
+    @abstractmethod
+    async def fetch_activity_data(self, user_id: str, activity_id:int) -> list:
+        """훈련 활동 데이터 가져오기"""
+        ...
     
     @abstractmethod
     async def refresh_token(self, user_id: str) -> dict:

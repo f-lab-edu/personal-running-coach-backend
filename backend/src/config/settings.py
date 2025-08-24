@@ -60,6 +60,7 @@ class StravaConfig(CommonConfig):
     token_url: str = Field(default="https://www.strava.com/oauth/token", alias="STRAVA_TOKEN_URL")
     api_url: str = Field(default="https://www.strava.com/api/v3/", alias="STRAVA_API_URL")
     auth_endpoint: str = Field(default="https://www.strava.com/oauth/authorize", alias="STRAVA_AUTH_ENDPOINT")
+    deauth_endpoint: str = Field(default="https://www.strava.com/oauth/deauthorize", alias="STRAVA_DEAUTH_ENDPOINT")
 
 db = DatabaseConfig()
 cors = CORSConfig()
