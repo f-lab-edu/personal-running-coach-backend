@@ -6,7 +6,7 @@ from schemas.models import AccountResponse, LoginResponse, TokenResponse
 from config.exceptions import TokenExpiredError, TokenInvalidError
 from config.logger import get_logger
 from infra.db.storage import repo
-from infra.security import encrypt_token
+from infra.security import encrypt_token, decrypt_token
 from config.settings import security
 from infra.db.storage.third_party_token_repo import get_all_user_tokens
 
@@ -38,18 +38,31 @@ class AuthHandler():
 
             # 토큰 발급
             access = self.token_adapter.create_access_token(user_id=acct_response.id)
-            refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
             
-            # 리프레시 토큰 암호화 저장
-            encrypted = encrypt_token(data=refresh_result.token,
-                                      key=security.encryption_key_refresh,
-                                      token_type="account_refresh"
-                                      )
-            await repo.add_refresh_token(
-                user_id=acct_response.id, token=encrypted, 
-                expires_at=refresh_result.expires_at,
-                db=self.db
-            )
+            # 기존 리프레시 토큰 있는지 확인
+            existing_token = await repo.get_refresh_token(user_id=acct_response.id,
+                                                        db=self.db
+                                                        )
+            
+            # 기존 토큰 존재시 기존 토큰 반환
+            if existing_token:
+                refresh_token = decrypt_token(existing_token,
+                                        key=security.encryption_key_refresh)
+                
+            else: # 없을 시 새 토큰 발급
+                refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
+                refresh_token = refresh_result.token
+                
+                # 리프레시 토큰 암호화 저장
+                encrypted = encrypt_token(data=refresh_token,
+                                        key=security.encryption_key_refresh,
+                                        token_type="account_refresh"
+                                        )
+                await repo.add_refresh_token(
+                    user_id=acct_response.id, token=encrypted, 
+                    expires_at=refresh_result.expires_at,
+                    db=self.db
+                )
             
             third_parties = await get_all_user_tokens(
                 user_id= acct_response.id,
@@ -60,7 +73,7 @@ class AuthHandler():
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access,
-                    refresh_token=refresh_result.token
+                    refresh_token=refresh_token
                 ),
                 user=acct_response,
                 connected=connected_li
