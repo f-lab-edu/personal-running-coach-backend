@@ -26,11 +26,11 @@ export async function signup(email: string, pwd: string, name: string) {
 }
 
 export async function connectStrava() {
-  window.location.href = `${BASE_URL}/auth/strava/connect`
-  // const res = await fetch(`${BASE_URL}/auth/strava/connect`, {
-  //   headers: { 'Authorization': `Bearer ${token}` }
-  // });
-  // if (!res.ok) throw new Error('Strava connect failed');
-  // const { url } = await res.json();
-  // return url;
+  const token = sessionStorage.getItem('access_token');
+  const res = await fetch(`${BASE_URL}/auth/strava/connect`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Strava connect failed');
+  const { url } = await res.json();
+  window.location.href = url;
 }

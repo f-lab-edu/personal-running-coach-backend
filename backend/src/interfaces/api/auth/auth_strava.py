@@ -3,7 +3,7 @@ from starlette.responses import RedirectResponse
 import urllib.parse
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from use_cases.auth.dependencies import get_current_user
+from use_cases.auth.dependencies import get_current_user, validate_current_user
 from infra.db.storage.session import get_session
 from config.logger import get_logger
 from config.exceptions import TokenError
@@ -24,7 +24,7 @@ def get_handler(db:AsyncSession=Depends(get_session))->StravaHandler:
     )
 
 @strava_router.get("/connect")
-async def connect_strava():
+async def connect_strava(valid: bool = Depends(validate_current_user)):
     params = {
         "client_id": strava.client_id,
         "redirect_uri": strava.redirect_uri,
@@ -33,7 +33,8 @@ async def connect_strava():
         "approval_prompt": "auto",
     }
     url = f"{strava.auth_endpoint}?{urllib.parse.urlencode(params)}"
-    return RedirectResponse(url)
+    # return RedirectResponse(url)
+    return {"url":url}
 
 
 @strava_router.post("/callback")
