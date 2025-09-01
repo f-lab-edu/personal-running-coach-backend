@@ -136,7 +136,11 @@ class StravaHandler:
 
                 # 토큰 만료시
                 # 리프레시토큰으로 새 토큰 발급 받기
-                strava_token = await self.strava_adapter.refresh_token(existing_token.refresh_token)
+                decrypted_refresh = decrypt_token(token_encrypted=existing_token.refresh_token,
+                                                  key=security.encryption_key_strava,
+                                                    token_type="strava_access"
+                                                  )
+                strava_token = await self.strava_adapter.refresh_token(decrypted_refresh)
 
                 # 토큰 암호화
                 # refresh_token, access_token, 

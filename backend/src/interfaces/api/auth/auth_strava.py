@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from starlette.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 import urllib.parse
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from use_cases.auth.dependencies import get_current_user, validate_current_user
 from infra.db.storage.session import get_session
 from config.logger import get_logger

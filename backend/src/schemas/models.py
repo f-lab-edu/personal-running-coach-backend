@@ -48,11 +48,25 @@ class SignupRequest(BaseModel):
     
 ########
 
-class TrainSession(BaseModel):
-    session_id:str
+class TrainStreamResponse(BaseModel):
+    heartrate: Optional[List[float]] = None
+    cadence: Optional[List[float]] = None
+    distance: Optional[List[float]] = None
+    velocity: Optional[List[float]] = None
+    altitude: Optional[List[float]] = None
+
+class TrainResponse(BaseModel):
+    session_id:UUID
     created_at:datetime
-    distance:float
-    stream_data:dict  ## TODO heartrate,watts,
+    train_date:datetime
+    train_type:str
+    train_detail:str
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
+    streams: Optional[TrainStreamResponse] = None
+    analysis_result: Optional[str] = None
+    
     
     
 class TrainGoal(BaseModel):

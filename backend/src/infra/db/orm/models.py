@@ -43,21 +43,27 @@ class ThirdPartyToken(SQLModel, table=True):
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
+    activity_id: Optional[int] = Field(index=True, unique=True)
     created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
     train_date: datetime
     train_type: str
-    train_detail: str
+    train_detail: str = Field(default="") ## ex) 훈련 간략 설명
 
 
     user: Optional[User] = Relationship(back_populates="train_sessions")
-    result: Optional["TrainResult"] = Relationship(back_populates="session")
+    result: Optional["TrainSessionResult"] = Relationship(back_populates="session")
     
 
-class TrainResult(SQLModel, table=True):
+class TrainSessionResult(SQLModel, table=True):
+    """heartrate,watts,cadence,distance,velocity_smooth,altitude"""
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     session_id: Optional[UUID] = Field(foreign_key="trainsession.id", nullable=False)
-    stream_data1: Optional[str] = None  # json/text
-    stream_data2: Optional[str] = None  # json/text TODO: 스트림데이터 저장 추후 업데이트
+    stream_heartrate: Optional[str] = None  # json/text
+    stream_watts: Optional[str] = None  # json/text
+    stream_cadence: Optional[str] = None  # json/text
+    stream_distance: Optional[str] = None  # json/text
+    stream_velocity: Optional[str] = None  # json/text
+    stream_altitude: Optional[str] = None  # json/text
     analysis_result: Optional[str] = None
     
     session: Optional[TrainSession] = Relationship(back_populates="result")
