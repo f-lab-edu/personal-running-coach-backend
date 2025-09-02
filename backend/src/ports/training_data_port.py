@@ -4,7 +4,7 @@ from uuid import UUID
 from infra.db.orm.models import ThirdPartyToken
 
 class TrainingDataPort(ABC):
-    """훈련 데이터를 수집하는 포트 인터페이스"""
+    """서드파티에서 훈련 데이터를 수집하는 포트 인터페이스"""
     
     @abstractmethod
     async def connect(self, auth_code: str) -> dict:
@@ -23,12 +23,17 @@ class TrainingDataPort(ABC):
     
     @abstractmethod
     async def fetch_activities(self, access_token:str, after_date: Optional[str] = None) -> list:
-        """훈련 활동 데이터 가져오기"""
+        """서드파티 기간내 모든 훈련 활동 데이터 리스트 가져오기"""
         ...
         
     @abstractmethod
-    async def fetch_activity_data(self, access_token: str, activity_id:int) -> list:
-        """훈련 활동 데이터 가져오기"""
+    async def fetch_activity_stream(self, access_token: str, activity_id:int) -> list:
+        """서드파티 훈련 활동의 스트림 데이터 가져오기"""
+        ...
+
+    @abstractmethod
+    async def fetch_activity_lap(self, access_token: str, activity_id:int) -> list:
+        """서드파티 훈련 활동의 랩 데이터 가져오기"""
         ...
         
     @abstractmethod 

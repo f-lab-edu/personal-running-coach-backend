@@ -40,16 +40,27 @@ class TrainSessionHandler:
         """
         try:
             ## 액세스 토큰
-            token = await self._get_access_token(payload.user_id)
-            
+            access_token = await self._get_access_token(payload)
         
-            if not token:
+            if not access_token:
                 raise HTTPException(status_code=400, detail="token returned None.")
             
-            activity_list = await self.adapter.fetch_activities(access_token=token.access_token,
+            
+            # 액티비티 리스트 
+            # TODO: 이미 받은 데이터는 제외.
+            activity_list = await self.adapter.get_activities(access_token=access_token,
                                                           after_date=after_date)
             
-            return activity_list
+            # 각 액티비티
+            for activity in activity_list:
+                activity_id = activity['id']
+                
+                lap_data = await self.adapter.get_activity_lap(access_token=access_token,
+                                                         activity_id=activity_id)
+                stream_data = await self.adapter.get_activity_stream(access_token=access_token,
+                                                         activity_id=activity_id)
+                
+                
         
         
         except HTTPException:

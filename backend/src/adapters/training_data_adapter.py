@@ -73,8 +73,6 @@ class StravaAdapter(TrainingDataPort):
                             provider="strava",
                             user_id=user_id
                         )
-        
-        
     
     async def fetch_activities(self, access_token:str, after_date: Optional[int] = None) -> List:
         """훈련 활동 데이터 가져오기
@@ -105,7 +103,7 @@ class StravaAdapter(TrainingDataPort):
             return response.json()
         
     
-    async def fetch_activity_data(self, access_token:str, activity_id:int) -> list:
+    async def fetch_activity_stream(self, access_token:str, activity_id:int) -> list:
 
 
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -118,6 +116,15 @@ class StravaAdapter(TrainingDataPort):
         
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+            
+    async def fetch_activity_lap(self, access_token:str, activity_id:int) -> list:
+        headers = {"Authorization": f"Bearer {access_token}"}
+        url = strava.api_url + f"activities/{activity_id}/laps"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()
         

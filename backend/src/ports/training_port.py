@@ -3,7 +3,8 @@ from typing import List
 from datetime import datetime
 from schemas.models import TrainSession, TrainGoal
 
-class TrainingPort(ABC):  ## TODO : TrainingSession MODEL
+class TrainingPort(ABC):
+    """훈련 데이터 db 핸들링 포트"""
     @abstractmethod
     def save_session(self, token:str, session:TrainSession)->bool:
         ...

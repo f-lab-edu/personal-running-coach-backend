@@ -17,3 +17,8 @@
 ci/cd docker
 https://www.docker.com/get-started/
 https://www.youtube.com/watch?v=eRh1LFZyEJM
+
+
+# strava api doc
+https://developers.strava.com/docs/authentication/#token-exchange
+https://developers.strava.com/docs/reference/#api-Athletes
