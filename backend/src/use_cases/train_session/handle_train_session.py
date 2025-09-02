@@ -48,16 +48,16 @@ class TrainSessionHandler:
             
             # 액티비티 리스트 
             # TODO: 이미 받은 데이터는 제외.
-            activity_list = await self.adapter.get_activities(access_token=access_token,
+            activity_list = await self.adapter.fetch_activities(access_token=access_token,
                                                           after_date=after_date)
             
             # 각 액티비티
             for activity in activity_list:
                 activity_id = activity['id']
                 
-                lap_data = await self.adapter.get_activity_lap(access_token=access_token,
+                lap_data = await self.adapter.fetch_activity_lap(access_token=access_token,
                                                          activity_id=activity_id)
-                stream_data = await self.adapter.get_activity_stream(access_token=access_token,
+                stream_data = await self.adapter.fetch_activity_stream(access_token=access_token,
                                                          activity_id=activity_id)
                 
                 
