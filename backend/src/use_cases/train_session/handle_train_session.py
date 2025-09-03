@@ -6,25 +6,25 @@ get each activity stream
 """
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
-from typing import Optional, List
-from uuid import UUID
+from typing import List
 
 from adapters.training_data_adapter import TrainingDataPort
 from config.logger import get_logger
-from infra.db.orm.models import TrainSessionResult, TrainSession
-from schemas.models import TrainStreamResponse, TrainResponse, TokenPayload
-from infra.db.storage import third_party_token_repo as repo 
+from schemas.models import TrainResponse, TokenPayload
 from use_cases.auth.auth_strava import StravaHandler
-
+from domains.data_analyzer import DataAnalyzer
 
 logger = get_logger(__file__)
 
 
 class TrainSessionHandler:
-    def __init__(self, db: AsyncSession, adapter: TrainingDataPort):
+    def __init__(self, db: AsyncSession, adapter: TrainingDataPort,
+                 auth_handler: StravaHandler
+                 ):
         self.db = db
         self.adapter = adapter
-        self.auth_handler = StravaHandler(db=db,adapter=adapter)
+        self.auth_handler = auth_handler
+        self.analyzer = DataAnalyzer()
         
     
     
@@ -51,15 +51,24 @@ class TrainSessionHandler:
             activity_list = await self.adapter.fetch_activities(access_token=access_token,
                                                           after_date=after_date)
             
+            schedules = []
+            
             # 각 액티비티
             for activity in activity_list:
-                activity_id = activity['id']
                 
                 lap_data = await self.adapter.fetch_activity_lap(access_token=access_token,
-                                                         activity_id=activity_id)
+                                                         activity_id=activity.activity_id)
                 stream_data = await self.adapter.fetch_activity_stream(access_token=access_token,
-                                                         activity_id=activity_id)
+                                                         activity_id=activity.activity_id)
                 
+                schedules.append(self.analyzer.classify_run_type())
+                
+                
+            
+                
+            ## TODO: db 저장
+            
+            ## TODO: 사용자에게 리턴
                 
         
         
@@ -67,7 +76,11 @@ class TrainSessionHandler:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail="internal server error")
-        
+
         
     def upload_schedule(self):
+        """db에 사용자가 직접 입력한 훈련 저장"""
+        ...
+    def update_schedule(self):
+        """사용자가 수정한 훈련 db 업데이트"""
         ...

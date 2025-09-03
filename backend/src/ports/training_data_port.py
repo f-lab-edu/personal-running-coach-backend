@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
+
+from schemas.models import LapData, StreamData, ActivityData
 from infra.db.orm.models import ThirdPartyToken
 
 class TrainingDataPort(ABC):
@@ -22,17 +24,17 @@ class TrainingDataPort(ABC):
         ...
     
     @abstractmethod
-    async def fetch_activities(self, access_token:str, after_date: Optional[str] = None) -> list:
+    async def fetch_activities(self, access_token:str, after_date: Optional[str] = None) -> List[ActivityData]:
         """서드파티 기간내 모든 훈련 활동 데이터 리스트 가져오기"""
         ...
         
     @abstractmethod
-    async def fetch_activity_stream(self, access_token: str, activity_id:int) -> list:
+    async def fetch_activity_stream(self, access_token: str, activity_id:int) -> List[StreamData]:
         """서드파티 훈련 활동의 스트림 데이터 가져오기"""
         ...
 
     @abstractmethod
-    async def fetch_activity_lap(self, access_token: str, activity_id:int) -> list:
+    async def fetch_activity_lap(self, access_token: str, activity_id:int) -> List[LapData]:
         """서드파티 훈련 활동의 랩 데이터 가져오기"""
         ...
         
