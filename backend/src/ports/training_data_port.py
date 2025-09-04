@@ -29,7 +29,7 @@ class TrainingDataPort(ABC):
         ...
         
     @abstractmethod
-    async def fetch_activity_stream(self, access_token: str, activity_id:int) -> List[StreamData]:
+    async def fetch_activity_stream(self, access_token: str, activity_id:int) -> StreamData:
         """서드파티 훈련 활동의 스트림 데이터 가져오기"""
         ...
 

@@ -126,7 +126,7 @@ class StravaAdapter(TrainingDataPort):
         return ActivityData_list
         
     
-    async def fetch_activity_stream(self, access_token:str, activity_id:int) -> List[StreamData]:
+    async def fetch_activity_stream(self, access_token:str, activity_id:int) -> StreamData:
 
 
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -145,7 +145,7 @@ class StravaAdapter(TrainingDataPort):
             return self._parse_stream_data(response.json())
             
         
-    def _parse_stream_data(self, res:dict) -> List[StreamData]:
+    def _parse_stream_data(self, res:dict) -> StreamData:
         """스트림 데이터 포맷 - dictionary 
             {
                 watts, cadence, velocity_smooth, time, heartrate, distance, altitude : {
@@ -156,10 +156,8 @@ class StravaAdapter(TrainingDataPort):
                 }
             }
         """
-        streams = []
         
-        streams.append(
-            StreamData(
+        return StreamData(
                 heartrate=res['heartrate']['data'],
                 cadence=(np.array(res['cadence']['data']) * 2).tolist(),
                 distance=res['distance']['data'],
@@ -167,9 +165,7 @@ class StravaAdapter(TrainingDataPort):
                 altitude=res['altitude']['data'],
                 time=res['time']['data'],
             )
-        )
-            
-        return streams
+
         
             
     async def fetch_activity_lap(self, access_token:str, activity_id:int) -> List[LapData]:

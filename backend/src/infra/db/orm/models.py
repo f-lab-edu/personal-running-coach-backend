@@ -1,6 +1,7 @@
 from uuid import UUID, uuid4
 from typing import Optional, List
 from datetime import datetime, timezone
+from sqlalchemy import Column, JSON, UniqueConstraint
 from sqlmodel import SQLModel, Field, Relationship
 
 # --- User ---
@@ -43,30 +44,48 @@ class ThirdPartyToken(SQLModel, table=True):
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    activity_id: Optional[int] = Field(index=True, unique=True)
+    provider: Optional[str] = None
+    activity_id: int = Field(index=True)
     created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
     train_date: datetime
-    train_type: str
-    train_detail: str = Field(default="") ## ex) 훈련 간략 설명
-
-
-    user: Optional[User] = Relationship(back_populates="train_sessions")
-    result: Optional["TrainSessionResult"] = Relationship(back_populates="session")
-    
-
-class TrainSessionResult(SQLModel, table=True):
-    """heartrate,watts,cadence,distance,velocity_smooth,altitude"""
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    session_id: Optional[UUID] = Field(foreign_key="trainsession.id", nullable=False)
-    stream_heartrate: Optional[str] = None  # json/text
-    stream_watts: Optional[str] = None  # json/text
-    stream_cadence: Optional[str] = None  # json/text
-    stream_distance: Optional[str] = None  # json/text
-    stream_velocity: Optional[str] = None  # json/text
-    stream_altitude: Optional[str] = None  # json/text
+    train_type: str  #TODO: enum
+    train_detail: Optional[str] = None ## ex) 훈련 간략 설명
     analysis_result: Optional[str] = None
     
-    session: Optional[TrainSession] = Relationship(back_populates="result")
+    user: Optional[User] = Relationship(back_populates="train_sessions")
+    stream: Optional["TrainSessionStream"] = Relationship(back_populates="session")
+    laps: List["TrainSessionLap"] = Relationship(back_populates="session")
+    
+    __table_args__ = (
+        UniqueConstraint("provider", "activity_id", name="uq_provider_activity"),
+    )
+    
+
+class TrainSessionStream(SQLModel, table=True):
+    # 스트림 데이터는 jsonstring 으로 저장
+    session_id: UUID = Field(foreign_key="trainsession.id", primary_key=True)
+    heartrate: Optional[dict] = Field(sa_column=Column(JSON))
+    cadence: Optional[dict] = Field(sa_column=Column(JSON))
+    distance: Optional[dict] = Field(sa_column=Column(JSON))
+    velocity: Optional[dict] = Field(sa_column=Column(JSON))
+    altitude: Optional[dict] = Field(sa_column=Column(JSON))
+    
+    session: Optional[TrainSession] = Relationship(back_populates="stream")
+    
+class TrainSessionLap(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: Optional[UUID] = Field(foreign_key="trainsession.id", nullable=False)
+    lap_index: int
+    distance: float  # meters
+    elapsed_time: int  # seconds
+    average_speed: float  # m/s
+    max_speed: float  # m/s
+    average_heartrate: Optional[float] = None
+    max_heartrate: Optional[float] = None
+    average_cadence: Optional[float] = None
+    elevation_gain:Optional[float] = None
+    
+    session: Optional[TrainSession] = Relationship(back_populates="laps")
     
 class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
