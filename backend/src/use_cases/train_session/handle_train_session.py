@@ -45,7 +45,6 @@ class TrainSessionHandler:
             
             
             # 액티비티 리스트 
-            # TODO: 이미 받은 데이터는 제외.
             activity_list = await self.data_adapter.fetch_activities(access_token=access_token,
                                                           after_date=after_date)
             
@@ -83,8 +82,14 @@ class TrainSessionHandler:
 
     
     async def get_schedules(self, payload:TokenPayload, start_date:int = None) -> List[TrainResponse]:
-        return self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
-                                             start_date=start_date)
+        try:
+            return self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
+                                                start_date=start_date)
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="internal server error")
         
         
     
