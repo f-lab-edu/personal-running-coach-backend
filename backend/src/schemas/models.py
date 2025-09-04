@@ -43,7 +43,6 @@ class TrainResponse(BaseModel):
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
-    # streams: Optional[TrainStream] = None
     analysis_result: Optional[str] = None
     
     

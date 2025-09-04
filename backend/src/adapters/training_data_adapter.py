@@ -160,7 +160,7 @@ class StravaAdapter(TrainingDataPort):
         return StreamData(
                 heartrate=res['heartrate']['data'],
                 cadence=(np.array(res['cadence']['data']) * 2).tolist(),
-                distance=res['distance']['data'],
+                distance=res['distance']['data'], 
                 velocity=res['velocity_smooth']['data'],
                 altitude=res['altitude']['data'],
                 time=res['time']['data'],

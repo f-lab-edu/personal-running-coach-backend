@@ -50,6 +50,9 @@ class TrainSession(SQLModel, table=True):
     train_date: datetime
     train_type: str  #TODO: enum
     train_detail: Optional[str] = None ## ex) 훈련 간략 설명
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
     analysis_result: Optional[str] = None
     
     user: Optional[User] = Relationship(back_populates="train_sessions")

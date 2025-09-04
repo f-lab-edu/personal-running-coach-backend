@@ -1,37 +1,62 @@
+"""훈련 데이터 db 핸들링 포트"""
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
 from datetime import datetime
-from schemas.models import TrainSession, TrainGoal
+from uuid import UUID
+
+from schemas.models import LapData, StreamData, TrainResponse, TrainGoal
 
 class TrainingPort(ABC):
-    """훈련 데이터 db 핸들링 포트"""
     @abstractmethod
-    def save_session(self, token:str, session:TrainSession)->bool:
+    def save_session(self, user_id:UUID, 
+                     session:TrainResponse,
+                     laps:List[LapData],
+                     stream:StreamData
+                     )->bool:
+        """훈련 세션  (TrainSession , Stream, Lap) 저장 """
         ...
         
     @abstractmethod
-    def update_session(self, token:str, session_id:str, session:TrainSession)->TrainSession:
+    def update_session(self, user_id:UUID, 
+                     session:TrainResponse = None,
+                     laps:List[LapData] = None,
+                     stream:StreamData = None)->bool:
+        """훈련 세션  (TrainSession , Stream, Lap) 업데이트. 수정된 부분만. """
+
         ...
         
     @abstractmethod
-    def get_session_by_id(self, token:str, session_id:str)->TrainSession:
+    def get_session_by_id(self, user_id:UUID, session_id:int, sport_type:str)->TrainResponse:
+        """훈련 세션 받기"""
         ...
         
     @abstractmethod
-    def get_sessions_by_date(self, token:str, start_date:datetime, end_date:datetime)-> List[TrainSession]:
-        ## datetime??
+    def get_session_detail(self, user_id:UUID, session_id:int)->Tuple[List[LapData], StreamData]:
+        """훈련 세션 세부 정보 받기 (stream, Lap)"""
         ...
         
     @abstractmethod
-    def delete_session(self, token:str, session_id:str)->bool:
+    def get_sessions_by_date(self, user_id:UUID, start_date:int)-> List[TrainResponse]:
+        """기간 내의 훈련 세션 받기"""
         ...
         
     @abstractmethod
-    def set_training_goal(self, token:str, training_goal:TrainGoal)->bool:
+    def delete_session(self, user_id:UUID, session_id:int)->bool:
+        """세션 삭제"""
+        ...
+    
+    
+    ### 훈련 목표
+    @abstractmethod
+    def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
         ...
         
     @abstractmethod
-    def get_training_goal(self, token:str)->TrainGoal:
+    def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+        ...
+        
+    @abstractmethod
+    def get_training_goal(self, user_id:UUID)->TrainGoal:
         ...
         
         

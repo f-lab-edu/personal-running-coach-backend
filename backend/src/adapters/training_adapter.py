@@ -1,27 +1,59 @@
-from ports.training_port import *
+from typing import List, Tuple
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ports.training_port import TrainingPort
+from schemas.models import LapData, StreamData, TrainResponse, TrainGoal
+from infra.db.storage import activity_repo as repo
 
 
 class TrainingAdapter(TrainingPort):
-    def save_session(self, token:str, session:TrainSession)->bool:
+    def __init__(self, db:AsyncSession):
+        self.db = db
+    
+    def save_session(self, user_id:UUID, 
+                     session:TrainResponse,
+                     laps:List[LapData],
+                     stream:StreamData
+                     )->bool:
+        """훈련 세션  (TrainSession , Stream, Lap) 저장 
+            같은 훈련은 스킵
+        """
         ...
         
-    def update_session(self, token:str, session_id:str, session:TrainSession)->TrainSession:
+    def update_session(self, user_id:UUID, 
+                     session:TrainResponse = None,
+                     laps:List[LapData] = None,
+                     stream:StreamData = None)->bool:
+        """훈련 세션  (TrainSession , Stream, Lap) 업데이트. 수정된 부분만. """
+
         ...
         
-    def get_session_by_id(self, token:str, session_id:str)->TrainSession:
+    def get_session_by_id(self, user_id:UUID, session_id:int, sport_type:str)->TrainResponse:
+        """훈련 세션 받기"""
         ...
         
-    def get_sessions_by_date(self, token:str, start_date:datetime, end_date:datetime)-> List[TrainSession]:
-        ## datetime??
+    def get_session_detail(self, user_id:UUID, session_id:int)->Tuple[List[LapData], StreamData]:
+        """훈련 세션 세부 정보 받기 (stream, Lap)"""
         ...
         
-    def delete_session(self, token:str, session_id:str)->bool:
+    def get_sessions_by_date(self, user_id:UUID, start_date:int)-> List[TrainResponse]:
+        """기간 내의 훈련 세션 받기"""
         ...
         
-    def set_training_goal(self, token:str, training_goal:TrainGoal)->bool:
+    def delete_session(self, user_id:UUID, session_id:int)->bool:
+        """세션 삭제"""
+        ...
+    
+    
+    ### 훈련 목표
+    def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
         ...
         
-    def get_training_goal(self, token:str)->TrainGoal:
+    def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+        ...
+        
+    def get_training_goal(self, user_id:UUID)->TrainGoal:
         ...
         
         
