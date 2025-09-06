@@ -30,7 +30,7 @@ class TrainSessionHandler:
         return await self.auth_handler.get_access_and_refresh_if_expired(payload=payload)
         
         
-    async def fetch_new_schedules(self, payload:TokenPayload, after_date:int = None) -> List[TrainResponse]:
+    async def fetch_new_schedules(self, payload:TokenPayload, after_date:int = None) -> bool:
         """주어진 기간 이후의 활동들을 받아서 db에 저장.
                     1. 주어진 날 이후의 데이터 받기
                     2. db에 데이터 저장. db에 겹치는 활동은 저장안함
@@ -48,7 +48,7 @@ class TrainSessionHandler:
             activity_list = await self.data_adapter.fetch_activities(access_token=access_token,
                                                           after_date=after_date)
             
-            schedules = []
+            # schedules = []
             
             # 각 액티비티
             for activity in activity_list:
@@ -58,21 +58,23 @@ class TrainSessionHandler:
                 stream_data = await self.data_adapter.fetch_activity_stream(access_token=access_token,
                                                          activity_id=activity.activity_id)
                 
-                train_res = self.analyzer.classify_run_type(activity=activity,
+                train_res = self.analyzer.analyze(activity=activity,
                                                             laps=lap_data,
                                                             streams=stream_data)
                 
-                schedules.append(train_res)
+                # schedules.append(train_res)
+                activity.analysis_result = train_res                
                 
                 ## db 저장
                 self.db_adapter.save_session(user_id=payload.user_id,
-                                             session=train_res,
+                                             session=activity,
                                              laps=lap_data,
                                              stream=stream_data
                                              )
 
             ## 사용자에게 리턴
-            return schedules
+            # return schedules
+            return True
                 
         
         except HTTPException:

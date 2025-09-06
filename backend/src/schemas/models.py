@@ -85,7 +85,7 @@ class StreamData(BaseModel):
 class ActivityData(BaseModel):
     activity_id: int
     distance: Optional[float] = None
-    elapsed_time: Optional[float] = None
+    elapsed_time: int
     sport_type: str
     start_date: datetime
     average_speed:Optional[float] = None
@@ -93,6 +93,7 @@ class ActivityData(BaseModel):
     average_heartrate:Optional[float] = None
     max_heartrate:Optional[float] = None
     average_cadence:Optional[float] = None
+    analysis_result = Optional[str] = None
     
 
     

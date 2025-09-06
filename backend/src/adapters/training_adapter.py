@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ports.training_port import TrainingPort
-from schemas.models import LapData, StreamData, TrainResponse, TrainGoal
+from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal
 from infra.db.storage import activity_repo as repo
 
 
@@ -12,7 +12,7 @@ class TrainingAdapter(TrainingPort):
         self.db = db
     
     def save_session(self, user_id:UUID, 
-                     session:TrainResponse,
+                     session:ActivityData,
                      laps:List[LapData],
                      stream:StreamData
                      )->bool:
@@ -22,7 +22,7 @@ class TrainingAdapter(TrainingPort):
         ...
         
     def update_session(self, user_id:UUID, 
-                     session:TrainResponse = None,
+                     session:ActivityData = None,
                      laps:List[LapData] = None,
                      stream:StreamData = None)->bool:
         """훈련 세션  (TrainSession , Stream, Lap) 업데이트. 수정된 부분만. """
