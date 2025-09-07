@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
-from adapters import StravaAdapter
+from adapters import StravaAdapter, TrainingAdapter
 from infra.db.storage.session import get_session
 from use_cases.train_session.handle_train_session import TrainSessionHandler
 from schemas.models import TokenPayload
@@ -13,18 +14,19 @@ router = APIRouter(prefix="/trainsession", tags=['train-session'])
 
 
 def get_handler(db:AsyncSession=Depends(get_session))->TrainSessionHandler:
-    adapter = StravaAdapter(db=db)
-    auth_handler = StravaHandler(db=db, adapter=adapter)
+    data_adapter = StravaAdapter(db=db)
+    training_adapter = TrainingAdapter(db=db)
+    auth_handler = StravaHandler(db=db, adapter=data_adapter)
     return TrainSessionHandler(
-        db=db,
-        adapter=adapter,
+        db_adapter=training_adapter,
+        data_adapter=data_adapter,
         auth_handler=auth_handler
     )
 
 # 스케줄 새로 로드
 @router.get("/fetch-new-schedules")
 async def fetch_schedule(
-    date:int,
+    date:Optional[int] = None,
     payload: TokenPayload = Depends(get_current_user),
     handler:TrainSessionHandler=Depends(get_handler)):
     
@@ -33,7 +35,7 @@ async def fetch_schedule(
 # 스케줄 불러오기
 @router.get("/fetch-schedules")
 async def fetch_schedule(
-    date:int,
+    date:Optional[int] = None,
     payload: TokenPayload = Depends(get_current_user),
     handler:TrainSessionHandler=Depends(get_handler)):
     

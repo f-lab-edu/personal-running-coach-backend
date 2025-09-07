@@ -2,7 +2,7 @@ import numpy as np
 from statistics import mean, pstdev
 
 from typing import List, Optional
-from schemas.models import LapData, StreamData, ActivityData, AnalysisResult
+from schemas.models import LapData, StreamData, ActivityData
 
 
 
@@ -38,7 +38,7 @@ class DataAnalyzer:
     
     
     
-    def _classify_intervals(laps: List[LapData]) -> Optional[str]:
+    def _classify_intervals(self, laps: List[LapData]) -> Optional[str]:
         if not laps:
             return None
 
@@ -78,7 +78,7 @@ class DataAnalyzer:
         reps = len(hard_laps)
         return f"{rep_distance}m 인터벌 {recovery} x {reps}회"
     
-    def _classify_hill_intervals(laps: List[LapData]) -> Optional[str]:
+    def _classify_hill_intervals(self, laps: List[LapData]) -> Optional[str]:
         hill_laps = [lap for lap in laps if lap.elevation_gain and lap.elevation_gain > 10]
         if len(hill_laps) < 2:
             return None

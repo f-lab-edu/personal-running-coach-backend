@@ -74,7 +74,7 @@ class StravaAdapter(TrainingDataPort):
                             user_id=user_id
                         )
     
-    async def fetch_activities(self, access_token:str, after_date: Optional[int] = None) -> List[ActivityData]:
+    async def fetch_activities(self, access_token:str, after_date: int = None) -> List[ActivityData]:
         """훈련 활동 데이터 가져오기
             user_id = 사용자 분류
             after_date = 시작날짜 (timestamp)
@@ -110,6 +110,7 @@ class StravaAdapter(TrainingDataPort):
         ActivityData_list = [
             ActivityData(
                 activity_id = activity['id'],
+                provider="strava",
                 distance = activity['distance'],
                 elapsed_time = activity['elapsed_time'],
                 sport_type = activity['sport_type'],
@@ -158,12 +159,12 @@ class StravaAdapter(TrainingDataPort):
         """
         
         return StreamData(
-                heartrate=res['heartrate']['data'],
-                cadence=(np.array(res['cadence']['data']) * 2).tolist(),
-                distance=res['distance']['data'], 
-                velocity=res['velocity_smooth']['data'],
-                altitude=res['altitude']['data'],
-                time=res['time']['data'],
+                heartrate=res.get('heartrate',{}).get('data'),
+                cadence=(np.array(res.get('cadence',{}).get('data')) * 2).tolist(),
+                distance=res.get('distance',{}).get('data'), 
+                velocity=res.get('velocity_smooth', {}).get('data'),
+                altitude=res.get("altitude", {}).get('data'),
+                time=res.get('time',{}).get('data'),
             )
 
         

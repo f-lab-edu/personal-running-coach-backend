@@ -24,7 +24,7 @@ class TrainingDataPort(ABC):
         ...
     
     @abstractmethod
-    async def fetch_activities(self, access_token:str, after_date: Optional[str] = None) -> List[ActivityData]:
+    async def fetch_activities(self, access_token:str, after_date: int = None) -> List[ActivityData]:
         """서드파티 기간내 모든 훈련 활동 데이터 리스트 가져오기"""
         ...
         

@@ -4,6 +4,7 @@ training data 관련 유스케이스
 from fastapi import HTTPException
 from typing import List
 
+
 from adapters.training_data_adapter import TrainingDataPort
 from adapters.training_adapter import TrainingPort
 from config.logger import get_logger
@@ -30,13 +31,14 @@ class TrainSessionHandler:
         return await self.auth_handler.get_access_and_refresh_if_expired(payload=payload)
         
         
-    async def fetch_new_schedules(self, payload:TokenPayload, after_date:int = None) -> bool:
+    async def fetch_new_schedules(self, payload:TokenPayload, start_date:int = None) -> bool:
         """주어진 기간 이후의 활동들을 받아서 db에 저장.
                     1. 주어진 날 이후의 데이터 받기
                     2. db에 데이터 저장. db에 겹치는 활동은 저장안함
                     3. 리턴
         """
         try:
+            
             ## 액세스 토큰
             access_token = await self._get_access_token(payload)
         
@@ -46,11 +48,10 @@ class TrainSessionHandler:
             
             # 액티비티 리스트 
             activity_list = await self.data_adapter.fetch_activities(access_token=access_token,
-                                                          after_date=after_date)
-            
-            # schedules = []
-            
+                                                          after_date=start_date)
+
             # 각 액티비티
+            schedules = []
             for activity in activity_list:
                 
                 lap_data = await self.data_adapter.fetch_activity_lap(access_token=access_token,
@@ -58,34 +59,37 @@ class TrainSessionHandler:
                 stream_data = await self.data_adapter.fetch_activity_stream(access_token=access_token,
                                                          activity_id=activity.activity_id)
                 
+                # TODO: 걸리는 시간 체크. threadpool로 처리
                 train_res = self.analyzer.analyze(activity=activity,
                                                             laps=lap_data,
-                                                            streams=stream_data)
+                                                            stream=stream_data)
                 
-                # schedules.append(train_res)
                 activity.analysis_result = train_res                
+                schedules.append(train_res)
                 
                 ## db 저장
-                self.db_adapter.save_session(user_id=payload.user_id,
-                                             session=activity,
+                await self.db_adapter.save_session(user_id=payload.user_id,
+                                             activity=activity,
                                              laps=lap_data,
                                              stream=stream_data
                                              )
-
             ## 사용자에게 리턴
-            # return schedules
-            return True
+            return schedules
+            # return True
                 
         
         except HTTPException:
             raise
         except Exception as e:
+            logger.exception(str(e))
             raise HTTPException(status_code=500, detail="internal server error")
 
     
     async def get_schedules(self, payload:TokenPayload, start_date:int = None) -> List[TrainResponse]:
+        """db 에서 스케줄 받기"""
         try:
-            return self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
+            
+            return await self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
                                                 start_date=start_date)
 
         except HTTPException:

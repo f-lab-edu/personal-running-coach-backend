@@ -1,14 +1,15 @@
 """훈련 데이터 db 핸들링 포트"""
 from abc import ABC, abstractmethod
 from typing import List, Tuple
+from datetime import datetime
 from uuid import UUID
 
-from schemas.models import AnalysisResult, LapData, StreamData, TrainResponse, TrainGoal
+from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal
 
 class TrainingPort(ABC):
     @abstractmethod
-    def save_session(self, user_id:UUID, 
-                     session:AnalysisResult,
+    async def save_session(self, user_id:UUID, 
+                     activity:ActivityData,
                      laps:List[LapData],
                      stream:StreamData
                      )->bool:
@@ -17,7 +18,7 @@ class TrainingPort(ABC):
         
     @abstractmethod
     def update_session(self, user_id:UUID, 
-                     session:AnalysisResult = None,
+                     activity:ActivityData = None,
                      laps:List[LapData] = None,
                      stream:StreamData = None)->bool:
         """훈련 세션  (TrainSession , Stream, Lap) 업데이트. 수정된 부분만. """
@@ -35,7 +36,7 @@ class TrainingPort(ABC):
         ...
         
     @abstractmethod
-    def get_sessions_by_date(self, user_id:UUID, start_date:int)-> List[TrainResponse]:
+    async def get_sessions_by_date(self, user_id:UUID, start_date:int)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""
         ...
         

@@ -1,23 +1,74 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select
 from uuid import UUID
+from typing import List
+from datetime import datetime, timedelta, timezone
 
 from infra.db.orm.models import TrainSession, TrainSessionStream, TrainSessionLap
+from schemas.models import ActivityData, LapData, StreamData
 from config.logger import get_logger
 
 logger = get_logger(__name__)
 
 # --- TrainSession ---
-async def add_train_session(train_session: TrainSession, db: AsyncSession) -> TrainSession:
+async def add_train_session(db: AsyncSession,
+                            user_id:UUID, 
+                            activity:ActivityData,
+                            ) -> TrainSession:
     try:
-        db.add(train_session)
+        session = TrainSession(
+            user_id=user_id,
+            provider=activity.provider,
+            activity_id=activity.activity_id,
+            train_date=activity.start_date,
+            distance=activity.distance,
+            avg_speed=activity.average_speed,
+            total_time = activity.elapsed_time,
+            analysis_result=activity.analysis_result
+        )
+        
+        db.add(session)
         await db.commit()
-        await db.refresh(train_session)
-        return train_session
+        await db.refresh(session)
+        return session
+    except IntegrityError as e:
+        await db.rollback()
+        print(f"{session.activity_id} exist")
+        return None
+        # raise HTTPException(status_code=409,
+        #                     detail="session already exist")
+    
     except Exception as e:
         logger.exception(str(e))
         await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    
+async def get_train_session_by_date( db: AsyncSession, 
+                                    user_id:UUID,
+                                    start_date:datetime = None
+                                    ) -> List[TrainSession] | None:
+    try:
+        # 디폴트 2주
+        if start_date is None:
+            cur = datetime.now(timezone.utc)
+            start_date = cur - timedelta(days=14)
+        
+        result = await db.execute(
+            select(TrainSession)
+            .where(TrainSession.user_id == user_id, 
+                   TrainSession.train_date >= start_date
+                   )
+            .order_by(TrainSession.train_date)
+            )
+        
+        return result.scalars().all()
+        
+        
+    except Exception as e:
+        logger.exception(str(e))
         raise HTTPException(status_code=400, detail=str(e))
 
 async def get_train_session_by_id(session_id: UUID, db: AsyncSession) -> TrainSession | None:
@@ -57,12 +108,22 @@ async def delete_train_session(train_session: TrainSession, db: AsyncSession) ->
         raise HTTPException(status_code=400, detail=str(e))
 
 # --- TrainSessionStream ---
-async def add_train_session_stream(stream: TrainSessionStream, db: AsyncSession) -> TrainSessionStream:
+async def add_train_session_stream(db: AsyncSession, session_id:UUID, stream:StreamData) -> TrainSessionStream:
     try:
-        db.add(stream)
+        # stream 데이터 json 형식으로 변환
+        data = TrainSessionStream(
+            session_id=session_id,
+            heartrate=stream.heartrate,
+            cadence=stream.cadence,
+            distance=stream.distance,
+            velocity=stream.velocity,
+            altitude=stream.altitude
+        )
+        
+        db.add(data)
         await db.commit()
-        await db.refresh(stream)
-        return stream
+        await db.refresh(data)
+        return data
     except Exception as e:
         logger.exception(str(e))
         await db.rollback()
@@ -97,12 +158,30 @@ async def delete_train_session_stream(stream: TrainSessionStream, db: AsyncSessi
         raise HTTPException(status_code=400, detail=str(e))
 
 # --- TrainSessionLap ---
-async def add_train_session_lap(lap: TrainSessionLap, db: AsyncSession) -> TrainSessionLap:
+async def add_train_session_lap(db: AsyncSession, session_id:UUID, laps: List[LapData]) -> List[TrainSessionLap]:
     try:
-        db.add(lap)
+        rows = [
+            TrainSessionLap(
+                session_id=session_id,
+                lap_index=lap.lap_index,
+                distance=lap.distance,
+                elapsed_time=lap.elapsed_time,
+                average_speed=lap.average_speed,
+                max_speed=lap.max_speed,
+                average_heartrate=lap.average_heartrate,
+                max_heartrate=lap.max_heartrate,
+                average_cadence=lap.average_cadence,
+                elevation_gain=lap.elevation_gain
+            )
+            for lap in laps
+        ]
+        
+        
+        
+        db.add_all(rows)
         await db.commit()
-        await db.refresh(lap)
-        return lap
+
+
     except Exception as e:
         logger.exception(str(e))
         await db.rollback()

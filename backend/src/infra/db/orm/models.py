@@ -46,10 +46,8 @@ class TrainSession(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     provider: Optional[str] = None
     activity_id: int = Field(index=True)
-    created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory= lambda: datetime.now(timezone.utc))
     train_date: datetime
-    train_type: str  #TODO: enum
-    train_detail: Optional[str] = None ## ex) 훈련 간략 설명
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
@@ -67,12 +65,11 @@ class TrainSession(SQLModel, table=True):
 class TrainSessionStream(SQLModel, table=True):
     # 스트림 데이터는 jsonstring 으로 저장
     session_id: UUID = Field(foreign_key="trainsession.id", primary_key=True)
-    heartrate: Optional[dict] = Field(sa_column=Column(JSON))
-    cadence: Optional[dict] = Field(sa_column=Column(JSON))
-    distance: Optional[dict] = Field(sa_column=Column(JSON))
-    velocity: Optional[dict] = Field(sa_column=Column(JSON))
-    altitude: Optional[dict] = Field(sa_column=Column(JSON))
-    
+    heartrate: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    cadence: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    distance: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    velocity: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    altitude: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
     session: Optional[TrainSession] = Relationship(back_populates="stream")
     
 class TrainSessionLap(SQLModel, table=True):
@@ -93,7 +90,7 @@ class TrainSessionLap(SQLModel, table=True):
 class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc))
     llm_type: str     #TODO: enum
     llm_result: str
 

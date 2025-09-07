@@ -38,8 +38,6 @@ class TrainResponse(BaseModel):
     session_id:UUID
     created_at:datetime
     train_date:datetime
-    train_type:str
-    train_detail:str
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
@@ -84,6 +82,7 @@ class StreamData(BaseModel):
 
 class ActivityData(BaseModel):
     activity_id: int
+    provider: Optional[str] = None
     distance: Optional[float] = None
     elapsed_time: int
     sport_type: str
@@ -93,7 +92,7 @@ class ActivityData(BaseModel):
     average_heartrate:Optional[float] = None
     max_heartrate:Optional[float] = None
     average_cadence:Optional[float] = None
-    analysis_result = Optional[str] = None
+    analysis_result : Optional[str] = None
     
 
     

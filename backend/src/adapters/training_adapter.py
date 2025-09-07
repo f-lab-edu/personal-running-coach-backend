@@ -1,25 +1,55 @@
+from fastapi import HTTPException
 from typing import List, Tuple
 from uuid import UUID
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ports.training_port import TrainingPort
 from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal
 from infra.db.storage import activity_repo as repo
+from config.logger import get_logger
 
+logger = get_logger(__file__)
 
 class TrainingAdapter(TrainingPort):
     def __init__(self, db:AsyncSession):
         self.db = db
     
-    def save_session(self, user_id:UUID, 
-                     session:ActivityData,
+    async def save_session(self, user_id:UUID, 
+                     activity:ActivityData,
                      laps:List[LapData],
                      stream:StreamData
                      )->bool:
         """훈련 세션  (TrainSession , Stream, Lap) 저장 
             같은 훈련은 스킵
         """
-        ...
+        try:
+            session = await repo.add_train_session(db=self.db,
+                                   user_id=user_id,
+                                activity=activity)
+            
+            # 이미 db에 저장된 세션.
+            if session is None:
+                return False
+            
+            await repo.add_train_session_stream(db=self.db,
+                                       session_id=session.id,
+                                       stream=stream)
+            
+            await repo.add_train_session_lap(db=self.db,
+                                             session_id=session.id,
+                                             laps=laps)
+            
+            return True
+            
+        except HTTPException as e:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="internal server error")
+        
+        
+        
         
     def update_session(self, user_id:UUID, 
                      session:ActivityData = None,
@@ -29,17 +59,26 @@ class TrainingAdapter(TrainingPort):
 
         ...
         
-    def get_session_by_id(self, user_id:UUID, session_id:int, sport_type:str)->TrainResponse:
+    def get_session_by_id(self, user_id:UUID, session_id:UUID, sport_type:str)->TrainResponse:
         """훈련 세션 받기"""
         ...
         
-    def get_session_detail(self, user_id:UUID, session_id:int)->Tuple[List[LapData], StreamData]:
+    def get_session_detail(self, user_id:UUID, session_id:UUID)->Tuple[List[LapData], StreamData]:
         """훈련 세션 세부 정보 받기 (stream, Lap)"""
         ...
         
-    def get_sessions_by_date(self, user_id:UUID, start_date:int)-> List[TrainResponse]:
+    async def get_sessions_by_date(self, user_id:UUID, start_date:int = None)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""
-        ...
+        if start_date is not None:
+            start_date = datetime.fromtimestamp(start_date, tz=timezone.utc)
+            
+        
+        return await repo.get_train_session_by_date(db=self.db,
+                                       user_id=user_id,
+                                       start_date=start_date)
+        
+        
+        
         
     def delete_session(self, user_id:UUID, session_id:int)->bool:
         """세션 삭제"""
