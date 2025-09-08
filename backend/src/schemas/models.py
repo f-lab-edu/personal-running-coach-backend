@@ -36,7 +36,6 @@ class LoginResponse(BaseModel):
 
 class TrainResponse(BaseModel):
     session_id:UUID
-    created_at:datetime
     train_date:datetime
     distance:Optional[float] = None
     avg_speed: Optional[float] = None

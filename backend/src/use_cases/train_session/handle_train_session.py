@@ -3,7 +3,7 @@ training data 관련 유스케이스
 """
 from fastapi import HTTPException
 from typing import List
-
+import time
 
 from adapters.training_data_adapter import TrainingDataPort
 from adapters.training_adapter import TrainingPort
@@ -26,7 +26,7 @@ class TrainSessionHandler:
         self.analyzer = DataAnalyzer()
         
     
-    
+    ## 스트라바 액세스 토큰 불러오기
     async def _get_access_token(self, payload:TokenPayload):
         return await self.auth_handler.get_access_and_refresh_if_expired(payload=payload)
         
@@ -47,35 +47,45 @@ class TrainSessionHandler:
             
             
             # 액티비티 리스트 
+            # start = time.time()
             activity_list = await self.data_adapter.fetch_activities(access_token=access_token,
                                                           after_date=start_date)
+            # logger.info(f"fetch activity: {time.time() - start:.3f} sec")
 
             # 각 액티비티
-            schedules = []
+            # schedules = []
             for activity in activity_list:
                 
+                # start = time.time()
                 lap_data = await self.data_adapter.fetch_activity_lap(access_token=access_token,
                                                          activity_id=activity.activity_id)
+                # logger.warning(f"fetch activity lap: {time.time() - start:.3f} sec")
+                # start = time.time()
                 stream_data = await self.data_adapter.fetch_activity_stream(access_token=access_token,
                                                          activity_id=activity.activity_id)
+                # logger.warning(f"fetch activity stream: {time.time() - start:.3f} sec")
                 
-                # TODO: 걸리는 시간 체크. threadpool로 처리
+                
+                # start = time.time()
                 train_res = self.analyzer.analyze(activity=activity,
                                                             laps=lap_data,
                                                             stream=stream_data)
+                # logger.warning(f"analyze: {time.time() - start:.3f} sec")
                 
                 activity.analysis_result = train_res                
-                schedules.append(train_res)
+                # schedules.append(train_res)
                 
                 ## db 저장
+                start = time.time()
                 await self.db_adapter.save_session(user_id=payload.user_id,
                                              activity=activity,
                                              laps=lap_data,
                                              stream=stream_data
                                              )
+                logger.warning(f"save session: {time.time() - start:.3f} sec")
             ## 사용자에게 리턴
-            return schedules
-            # return True
+            # return schedules
+            return True
                 
         
         except HTTPException:

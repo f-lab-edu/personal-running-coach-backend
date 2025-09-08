@@ -1,7 +1,6 @@
 """훈련 데이터 db 핸들링 포트"""
 from abc import ABC, abstractmethod
 from typing import List, Tuple
-from datetime import datetime
 from uuid import UUID
 
 from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal

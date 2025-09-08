@@ -13,9 +13,9 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     provider: str = Field(default="local")  # Default to "local" for email/password users
 
-    tokens: List["Token"] = Relationship(back_populates="user")
-    third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user")
-    train_sessions: List["TrainSession"] = Relationship(back_populates="user")
+    tokens: List["Token"] = Relationship(back_populates="user", cascade_delete=True)
+    third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user", cascade_delete=True)
+    train_sessions: List["TrainSession"] = Relationship(back_populates="user", cascade_delete=True)
     llms: List["LLM"] = Relationship(back_populates="user")
 
 class Token(SQLModel, table=True):
@@ -54,8 +54,8 @@ class TrainSession(SQLModel, table=True):
     analysis_result: Optional[str] = None
     
     user: Optional[User] = Relationship(back_populates="train_sessions")
-    stream: Optional["TrainSessionStream"] = Relationship(back_populates="session")
-    laps: List["TrainSessionLap"] = Relationship(back_populates="session")
+    stream: Optional["TrainSessionStream"] = Relationship(back_populates="session", cascade_delete=True)
+    laps: List["TrainSessionLap"] = Relationship(back_populates="session", cascade_delete=True)
     
     __table_args__ = (
         UniqueConstraint("provider", "activity_id", name="uq_provider_activity"),

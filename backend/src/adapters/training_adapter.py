@@ -72,10 +72,21 @@ class TrainingAdapter(TrainingPort):
         if start_date is not None:
             start_date = datetime.fromtimestamp(start_date, tz=timezone.utc)
             
-        
-        return await repo.get_train_session_by_date(db=self.db,
+        sessions = await repo.get_train_session_by_date(db=self.db,
                                        user_id=user_id,
                                        start_date=start_date)
+        return [
+            TrainResponse(
+                session_id=session.id,
+                train_date=session.train_date,
+                distance=session.distance,
+                avg_speed=session.avg_speed,
+                total_time=session.total_time,
+                analysis_result=session.analysis_result
+            ) for session in sessions
+        ]
+        
+        
         
         
         
