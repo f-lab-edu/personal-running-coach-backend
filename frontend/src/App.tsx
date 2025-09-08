@@ -6,6 +6,7 @@ import MainPage from './pages/MainPage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import SignupPage from './pages/SignupPage.tsx';
 import ConnectPage from './pages/ConnectPage.tsx';
+import TrainingPage from './pages/TrainingPage.tsx';
 import CallbackPage from './pages/CallbackPage.tsx';
 import StravaCallback from './pages/StravaCallbackPage.tsx';
 
@@ -34,6 +35,7 @@ const LeftNav = () => (
 			{/* <li><Link to="/login">Login</Link></li>  */}
 			<li><Link to="/signup">Signup</Link></li>
 			<li><Link to="/connect">Connect</Link></li>
+			<li><Link to="/training">training</Link></li>
 		</ul>
 	</nav>
 );
@@ -74,6 +76,7 @@ const App: React.FC = () => {
                                                                 setThirdList={setThirdList}/>} />
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/connect" element={<ConnectPage user={user} thirdList={thirdList}/>} />
+                        <Route path="/training" element={<TrainingPage user={user} token={token}/>} />
                     </Routes>
                 </div>
             </div>

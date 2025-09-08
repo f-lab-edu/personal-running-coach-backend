@@ -1,4 +1,27 @@
+
 const BASE_URL = 'http://localhost:8000';
+
+// Fetch train schedules (GET /trainsession/fetch-schedules)
+export async function fetchSchedules(token: string, date?: number) {
+  const url = new URL(`${BASE_URL}/trainsession/fetch-schedules`);
+  if (date) url.searchParams.append('date', date.toString());
+  const res = await fetch(url.toString(), {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch schedules');
+  return await res.json();
+}
+
+// Fetch new schedules (GET /trainsession/fetch-new-schedules)
+export async function fetchNewSchedules(token: string, date?: number) {
+  const url = new URL(`${BASE_URL}/trainsession/fetch-new-schedules`);
+  if (date) url.searchParams.append('date', date.toString());
+  const res = await fetch(url.toString(), {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch new schedules');
+  return await res.json();
+}
 
 export async function loginWithEmail(email: string, pwd: string) {
   const res = await fetch(`${BASE_URL}/auth/login`, {
