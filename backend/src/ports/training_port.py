@@ -3,7 +3,12 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple
 from uuid import UUID
 
-from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal
+from schemas.models import (ActivityData, 
+                            LapData, 
+                            StreamData, 
+                            TrainResponse, 
+                            TrainDetailResponse, 
+                            TrainGoal)
 
 class TrainingPort(ABC):
     @abstractmethod
@@ -25,12 +30,12 @@ class TrainingPort(ABC):
         ...
         
     @abstractmethod
-    def get_session_by_id(self, user_id:UUID, session_id:int, sport_type:str)->TrainResponse:
+    def get_session_by_id(self, user_id:UUID, session_id:UUID, sport_type:str)->TrainResponse:
         """훈련 세션 받기"""
         ...
         
     @abstractmethod
-    def get_session_detail(self, user_id:UUID, session_id:int)->Tuple[List[LapData], StreamData]:
+    async def get_session_detail(self, user_id:UUID, session_id:UUID)->TrainDetailResponse:
         """훈련 세션 세부 정보 받기 (stream, Lap)"""
         ...
         

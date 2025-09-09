@@ -14,35 +14,7 @@ class TokenPayload(BaseModel):  ## jwt payload 용
 class RefreshTokenResult(BaseModel):
     token:str
     expires_at:int
-    
 
-############### 응답모델
-class TokenResponse(BaseModel):
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
-
-class AccountResponse(BaseModel):
-    id: UUID
-    email: EmailStr
-    name: Optional[str] = None 
-    provider: str = "local"
-    
-class LoginResponse(BaseModel):
-    token: Optional[TokenResponse] = None
-    user: AccountResponse
-    connected: List[str] = []
-    
-
-
-class TrainResponse(BaseModel):
-    session_id:UUID
-    train_date:datetime
-    distance:Optional[float] = None
-    avg_speed: Optional[float] = None
-    total_time: Optional[float] = None
-    analysis_result: Optional[str] = None
-    
-    
 
 
 
@@ -71,6 +43,9 @@ class LapData(BaseModel):
     average_cadence: Optional[float] = None
     elevation_gain:Optional[float] = None
 
+    class Config:
+        from_attributes = True  # ORM 객체 지원
+
 class StreamData(BaseModel):
     heartrate: Optional[List[float]] = None
     cadence: Optional[List[float]] = None
@@ -78,6 +53,9 @@ class StreamData(BaseModel):
     velocity: Optional[List[float]] = None
     altitude: Optional[List[float]] = None
     time: Optional[List[float]] = None
+
+    class Config:
+        from_attributes = True  # ORM 객체 지원
 
 class ActivityData(BaseModel):
     activity_id: int
@@ -106,4 +84,33 @@ class CoachAdvice(BaseModel):
     created_at:datetime
     advice:str
     
+
+
+
+############### 응답모델
+class TokenResponse(BaseModel):
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+
+class AccountResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    name: Optional[str] = None 
+    provider: str = "local"
     
+class LoginResponse(BaseModel):
+    token: Optional[TokenResponse] = None
+    user: AccountResponse
+    connected: List[str] = []
+    
+class TrainResponse(BaseModel):
+    session_id:UUID
+    train_date:datetime
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
+    analysis_result: Optional[str] = None
+
+class TrainDetailResponse(BaseModel):
+    laps:Optional[List[LapData]] = None
+    stream : Optional[StreamData] = None

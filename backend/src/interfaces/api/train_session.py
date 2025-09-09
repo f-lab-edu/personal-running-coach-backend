@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+from uuid import UUID
 
 from adapters import StravaAdapter, TrainingAdapter
 from infra.db.storage.session import get_session
@@ -43,3 +44,10 @@ async def fetch_schedule(
 
 
 # 스케줄 세부 정보
+@router.get("/{session_id}")
+async def fetch_schedule(
+    session_id:UUID,
+    payload: TokenPayload = Depends(get_current_user),
+    handler:TrainSessionHandler=Depends(get_handler)):
+    
+    return await handler.get_schedule_detail(payload=payload, session_id=session_id)

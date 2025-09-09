@@ -3,12 +3,13 @@ training data 관련 유스케이스
 """
 from fastapi import HTTPException
 from typing import List
+from uuid import UUID
 import time
 
 from adapters.training_data_adapter import TrainingDataPort
 from adapters.training_adapter import TrainingPort
 from config.logger import get_logger
-from schemas.models import TokenPayload, TrainResponse, LapData, StreamData
+from schemas.models import TokenPayload, TrainResponse, LapData, StreamData, TrainDetailResponse
 from use_cases.auth.auth_strava import StravaHandler
 from domains.data_analyzer import DataAnalyzer
 
@@ -106,7 +107,21 @@ class TrainSessionHandler:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail="internal server error")
-        
+    
+
+    async def get_schedule_detail(self, payload:TokenPayload, session_id:UUID = None)->TrainDetailResponse:
+        """db 에서 스케줄 세부정보 받기"""
+        try:
+            
+            return await self.db_adapter.get_session_detail(user_id=payload.user_id,
+                                                session_id=session_id)
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="internal server error")
+
         
     
     def upload_new_schedule(self, payload:TokenPayload, session:TrainResponse)->bool:

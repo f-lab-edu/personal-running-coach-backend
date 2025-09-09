@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ports.training_port import TrainingPort
-from schemas.models import ActivityData, LapData, StreamData, TrainResponse, TrainGoal
+from schemas.models import (ActivityData, 
+                            LapData, 
+                            StreamData, 
+                            TrainResponse, 
+                            TrainDetailResponse,
+                            TrainGoal)
 from infra.db.storage import activity_repo as repo
 from config.logger import get_logger
 
@@ -63,9 +68,25 @@ class TrainingAdapter(TrainingPort):
         """훈련 세션 받기"""
         ...
         
-    def get_session_detail(self, user_id:UUID, session_id:UUID)->Tuple[List[LapData], StreamData]:
+    async def get_session_detail(self, user_id:UUID, session_id:UUID)->TrainDetailResponse:
         """훈련 세션 세부 정보 받기 (stream, Lap)"""
-        ...
+        try:
+            laps_orm = await repo.get_train_session_laps(user_id=user_id, session_id=session_id, db=self.db)
+            stream_orm = await repo.get_train_session_stream(user_id=user_id, session_id=session_id, db=self.db)
+
+            laps = [LapData.model_validate(lap) for lap in laps_orm]
+            stream = StreamData.model_validate(stream_orm) if stream_orm else None
+
+            return TrainDetailResponse(
+                laps=laps,
+                stream=stream
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="internal server error")
+
         
     async def get_sessions_by_date(self, user_id:UUID, start_date:int = None)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""

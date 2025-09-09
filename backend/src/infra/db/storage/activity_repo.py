@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from uuid import UUID
 from typing import List
 from datetime import datetime, timedelta, timezone
@@ -129,8 +129,19 @@ async def add_train_session_stream(db: AsyncSession, session_id:UUID, stream:Str
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-async def get_train_session_stream(session_id: UUID, db: AsyncSession) -> TrainSessionStream | None:
+async def get_train_session_stream(user_id:UUID, session_id: UUID, db: AsyncSession) -> TrainSessionStream :
     try:
+
+        check = await db.execute(
+            select(TrainSession)
+            .where(
+                and_(TrainSession.user_id == user_id, TrainSession.id == session_id))
+            )
+        valid = check.scalar_one_or_none()
+        if not valid: # user id sessionid mismatch
+            raise HTTPException(status_code=400, detail="invalid session id")
+
+
         res = await db.execute(select(TrainSessionStream).where(TrainSessionStream.session_id == session_id))
         return res.scalar_one_or_none()
     except Exception as e:
@@ -187,10 +198,24 @@ async def add_train_session_lap(db: AsyncSession, session_id:UUID, laps: List[La
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-async def get_train_session_laps(session_id: UUID, db: AsyncSession) -> list[TrainSessionLap]:
+async def get_train_session_laps(user_id:UUID, session_id: UUID, db: AsyncSession) -> list[TrainSessionLap]:
     try:
-        res = await db.execute(select(TrainSessionLap).where(TrainSessionLap.session_id == session_id))
+        check = await db.execute(
+            select(TrainSession)
+            .where(
+                and_(TrainSession.user_id == user_id, TrainSession.id == session_id))
+            )
+        valid = check.scalar_one_or_none()
+        if not valid: # user id sessionid mismatch
+            raise HTTPException(status_code=400, detail="invalid session id")
+
+        res = await db.execute(
+            select(TrainSessionLap)
+            .where(TrainSessionLap.session_id == session_id)
+            )
         return res.scalars().all()
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(str(e))
         raise HTTPException(status_code=400, detail=str(e))
