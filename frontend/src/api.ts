@@ -1,5 +1,17 @@
-
 const BASE_URL = 'http://localhost:8000';
+
+
+// Fetch train session detail (GET /trainsession/{session_id})
+export async function fetchTrainDetail(session_id: string) {
+  const url = `${BASE_URL}/trainsession/${session_id}`;
+  const headers: Record<string, string> = {};
+  const token = sessionStorage.getItem('access_token');
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error('Failed to fetch session detail');
+  return await res.json();
+}
+
 
 // Fetch train schedules (GET /trainsession/fetch-schedules)
 export async function fetchSchedules(token: string, date?: number) {

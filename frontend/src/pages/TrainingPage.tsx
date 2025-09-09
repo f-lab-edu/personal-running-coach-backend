@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchSchedules, fetchNewSchedules } from '../api';
 import { calcPace } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 interface TrainResponse {
 	session_id: string;
@@ -71,15 +72,17 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 	const days = getMonthDays(year, month);
 	const firstWeekday = new Date(year, month, 1).getDay();
 
-	// Map date string (YYYY-MM-DD) to schedule
-	const scheduleMap = new Map<string, TrainResponse>();
+	// Map date string (YYYY-MM-DD) to array of schedules
+	const scheduleMap = new Map<string, TrainResponse[]>();
 	schedules.forEach(sch => {
 		const key = sch.train_date.slice(0, 10);
-		scheduleMap.set(key, sch);
+		if (!scheduleMap.has(key)) scheduleMap.set(key, []);
+		scheduleMap.get(key)!.push(sch);
 	});
 
 	const todayStr = new Date().toISOString().slice(0, 10);
 	// console.log(todayStr);
+	const navigate = useNavigate();
 	return (
 		<div>
 			<h2>Training Calendar</h2>
@@ -90,71 +93,71 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 				<button style={{ marginLeft: 24 }} onClick={handleRefresh} disabled={loading}>Refresh</button>
 			</div>
 			{error && <div style={{ color: 'red' }}>{error}</div>}
-					<div style={{ overflowX: 'auto', width: '100%', height: '70vh', minHeight: 500 }}>
-						<table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 600, maxWidth: '100%', height: '100%', tableLayout: 'fixed' }}>
-				<thead>
-					<tr>
-						{['일', '월', '화', '수', '목', '금', '토'].map(d => (
-							<th key={d} style={{ border: '1px solid #ccc', padding: 12, fontSize: 18, width: `${100/7}%` }}>{d}</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{(() => {
-						const rows = [];
-						let cells = [];
-						// Empty cells for first week
-						for (let i = 0; i < firstWeekday; i++) {
-							cells.push(<td key={'empty-' + i}></td>);
-						}
-						days.forEach((date, idx) => {
-							// const key = date.toISOString().slice(0, 10);
-							const key = date.toLocaleDateString('sv-SE');
-							const sch = scheduleMap.get(key);
-							const schKey = sch?.train_date?.slice(0,10);
-							const isToday = key === todayStr;
-							cells.push(
-								<td key={key} style={{
-									border: '1px solid #ccc',
-									padding: 12,
-									minHeight: 80,
-									height: '10vh',
-									background: isToday ? '#e0f7fa' : schKey === key ? '#ffe0b2' : undefined,
-									verticalAlign: 'top',
-									width: `${100/7}%`,
-								}}>
-									<div style={{ fontWeight: isToday ? 'bold' : undefined, fontSize: 20 }}>{date.getDate()}</div>
-																{sch && (
-																	<div>
-																		{/* Title: analysis_result */}
-																		<div style={{ fontWeight: 'bold', fontSize: 16, color: '#333', marginBottom: 4 }}>
-																			{sch.analysis_result || '훈련'}
-																		</div>
-																		{/* Details below */}
-																		<div style={{ fontSize: 13, color: '#555' }}>
-																			{sch.distance !== undefined ? `거리: ${sch.distance}m` : ''}
-																			{sch.avg_speed !== undefined ? <><br />평속: {sch.avg_speed.toFixed(2)}</> : null}
-																			{sch.total_time !== undefined ? <><br />시간: {sch.total_time}초</> : null}
-																			{sch.distance !== undefined && sch.total_time !== undefined ? <><br />페이스: {calcPace(sch.distance, sch.total_time) ?? '-'} min/km</> : null}
-																		</div>
-																	</div>
-																)}
-								</td>
-							);
-							if ((cells.length) % 7 === 0) {
-								rows.push(<tr key={'row-' + idx}>{cells}</tr>);
-								cells = [];
+			<div style={{ overflowX: 'auto', width: '100%', height: '70vh', minHeight: 500 }}>
+				<table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 600, maxWidth: '100%', height: '100%', tableLayout: 'fixed' }}>
+					<thead>
+						<tr>
+							{['일', '월', '화', '수', '목', '금', '토'].map(d => (
+								<th key={d} style={{ border: '1px solid #ccc', padding: 12, fontSize: 18, width: `${100/7}%` }}>{d}</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+						{(() => {
+							const rows = [];
+							let cells = [];
+							// Empty cells for first week
+							for (let i = 0; i < firstWeekday; i++) {
+								cells.push(<td key={'empty-' + i}></td>);
 							}
-						});
-						if (cells.length) {
-							while (cells.length < 7) cells.push(<td key={'empty-end-' + cells.length}></td>);
-							rows.push(<tr key={'row-last'}>{cells}</tr>);
-						}
-						return rows;
-					})()}
-				</tbody>
-						</table>
-					</div>
+							days.forEach((date, idx) => {
+								const key = date.toLocaleDateString('sv-SE');
+								const schArr = scheduleMap.get(key);
+								const isToday = key === todayStr;
+								cells.push(
+									<td key={key} style={{
+										border: '1px solid #ccc',
+										padding: 12,
+										minHeight: 80,
+										height: '10vh',
+										background: isToday ? '#e0f7fa' : schArr ? '#ffe0b2' : undefined,
+										verticalAlign: 'top',
+										width: `${100/7}%`,
+									}}>
+										<div style={{ fontWeight: isToday ? 'bold' : undefined, fontSize: 20 }}>{date.getDate()}</div>
+										{schArr && schArr.map(sch => (
+											<div
+												key={sch.session_id}
+												style={{
+													fontWeight: 'bold',
+													fontSize: 16,
+													color: '#1976d2',
+													marginBottom: 4,
+													cursor: 'pointer',
+													textDecoration: 'underline',
+												}}
+												onClick={() => navigate(`/training/${sch.session_id}`, { state: { session: sch } })}
+												title={sch.analysis_result || '훈련'}
+											>
+												{sch.analysis_result || '훈련'}
+											</div>
+										))}
+									</td>
+								);
+								if ((cells.length) % 7 === 0) {
+									rows.push(<tr key={'row-' + idx}>{cells}</tr>);
+									cells = [];
+								}
+							});
+							if (cells.length) {
+								while (cells.length < 7) cells.push(<td key={'empty-end-' + cells.length}></td>);
+								rows.push(<tr key={'row-last'}>{cells}</tr>);
+							}
+							return rows;
+						})()}
+					</tbody>
+				</table>
+			</div>
 			{loading && <div>Loading...</div>}
 		</div>
 	);
