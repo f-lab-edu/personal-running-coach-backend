@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchSchedules, fetchNewSchedules } from '../api';
+import { calcPace } from '../utils';
 
 interface TrainResponse {
 	session_id: string;
@@ -39,7 +40,10 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 		if (!token?.access_token) return;
 		setLoading(true);
 		fetchSchedules(token.access_token)
-			.then(setSchedules)
+			.then(data => {
+				// console.log(data);
+				setSchedules(data);
+				})
 			.catch(e => setError(e.message))
 			.finally(() => setLoading(false));
 	}, [token]);
@@ -49,8 +53,11 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 		setLoading(true);
 		setError('');
 		try {
-			const data = await fetchNewSchedules(token.access_token);
-			setSchedules(data);
+			const res = await fetchNewSchedules(token.access_token);
+			if (res) {
+				const newSchedules = await fetchSchedules(token.access_token);
+				setSchedules(newSchedules);
+			}
 		} catch (e: any) {
 			setError(e.message);
 		} finally {
@@ -67,13 +74,12 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 	// Map date string (YYYY-MM-DD) to schedule
 	const scheduleMap = new Map<string, TrainResponse>();
 	schedules.forEach(sch => {
-		const d = new Date(sch.train_date);
-		const key = d.toISOString().slice(0, 10);
+		const key = sch.train_date.slice(0, 10);
 		scheduleMap.set(key, sch);
 	});
 
 	const todayStr = new Date().toISOString().slice(0, 10);
-
+	// console.log(todayStr);
 	return (
 		<div>
 			<h2>Training Calendar</h2>
@@ -102,8 +108,10 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 							cells.push(<td key={'empty-' + i}></td>);
 						}
 						days.forEach((date, idx) => {
-							const key = date.toISOString().slice(0, 10);
+							// const key = date.toISOString().slice(0, 10);
+							const key = date.toLocaleDateString('sv-SE');
 							const sch = scheduleMap.get(key);
+							const schKey = sch?.train_date?.slice(0,10);
 							const isToday = key === todayStr;
 							cells.push(
 								<td key={key} style={{
@@ -111,17 +119,26 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 									padding: 12,
 									minHeight: 80,
 									height: '10vh',
-									background: isToday ? '#e0f7fa' : sch ? '#ffe0b2' : undefined,
+									background: isToday ? '#e0f7fa' : schKey === key ? '#ffe0b2' : undefined,
 									verticalAlign: 'top',
 									width: `${100/7}%`,
 								}}>
 									<div style={{ fontWeight: isToday ? 'bold' : undefined, fontSize: 20 }}>{date.getDate()}</div>
-									{sch && (
-										<div style={{ fontSize: 14, color: '#333' }}>
-											{sch.distance ? `${sch.distance}m` : ''}<br/>
-											{sch.avg_speed ? `평속: ${sch.avg_speed.toFixed(2)}` : ''}
-										</div>
-									)}
+																{sch && (
+																	<div>
+																		{/* Title: analysis_result */}
+																		<div style={{ fontWeight: 'bold', fontSize: 16, color: '#333', marginBottom: 4 }}>
+																			{sch.analysis_result || '훈련'}
+																		</div>
+																		{/* Details below */}
+																		<div style={{ fontSize: 13, color: '#555' }}>
+																			{sch.distance !== undefined ? `거리: ${sch.distance}m` : ''}
+																			{sch.avg_speed !== undefined ? <><br />평속: {sch.avg_speed.toFixed(2)}</> : null}
+																			{sch.total_time !== undefined ? <><br />시간: {sch.total_time}초</> : null}
+																			{sch.distance !== undefined && sch.total_time !== undefined ? <><br />페이스: {calcPace(sch.distance, sch.total_time) ?? '-'} min/km</> : null}
+																		</div>
+																	</div>
+																)}
 								</td>
 							);
 							if ((cells.length) % 7 === 0) {
