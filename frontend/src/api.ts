@@ -1,5 +1,42 @@
 const BASE_URL = 'http://localhost:8000';
 
+// Fetch current user profile (GET /profile/me)
+export async function fetchProfile() {
+  const token = sessionStorage.getItem('access_token');
+  const res = await fetch(`${BASE_URL}/profile/me`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch profile');
+  return await res.json();
+}
+
+// Update user profile (PUT /profile/update)
+export async function updateProfile(data: {
+  name?: string;
+  pwd?: string;
+  provider?: string;
+  info?: {
+    height?: number;
+    weight?: number;
+    age?: number;
+    sex?: string;
+    train_goal?: string;
+  };
+}) {
+  const token = sessionStorage.getItem('access_token');
+  const res = await fetch(`${BASE_URL}/profile/update`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Failed to update profile');
+  return await res.json();
+}
+
 
 // Fetch train session detail (GET /trainsession/{session_id})
 export async function fetchTrainDetail(session_id: string) {
