@@ -102,16 +102,16 @@ class StravaHandler:
         return status
     
         
-    async def get_access_and_refresh_if_expired(self, payload:TokenPayload)->dict:
-            """ 토큰 만료 검증 후 재발급
+    async def get_access_and_refresh_if_expired(self, payload:TokenPayload)->str:
+            """ 
+            현재 액세스 토큰 만료 검증.
+            만료시 재발급 및 db 업데이트.
+            유효 액세스 토큰 반환
                 parameter: 
                     payload: 사용자 액세스 토큰 payload
-                return: {"refreshed": bool, "access_token": str}
+                return: access_token (str)
             """
-            res = {
-               "refreshed":False,
-               "access":"" 
-            }
+            
             try: 
                 if not payload:
                     raise HTTPException(status_code=400, detail="User not authenticated")
@@ -127,16 +127,18 @@ class StravaHandler:
                 
                 # 토큰 검증
                 if not await self.strava_adapter.is_token_expired(expires_at=existing_token.expires_at):
-                    res['access'] = decrypt_token(token_encrypted=existing_token.access_token,
+                    return decrypt_token(token_encrypted=existing_token.access_token,
                                   key=security.encryption_key_strava,
                                     token_type="strava_access"
                                   )
-                    res['refreshed'] = False
-                    return res
 
                 # 토큰 만료시
                 # 리프레시토큰으로 새 토큰 발급 받기
-                strava_token = await self.strava_adapter.refresh_token(existing_token.refresh_token)
+                decrypted_refresh = decrypt_token(token_encrypted=existing_token.refresh_token,
+                                                  key=security.encryption_key_strava,
+                                                    token_type="strava_access"
+                                                  )
+                strava_token = await self.strava_adapter.refresh_token(decrypted_refresh)
 
                 # 토큰 암호화
                 # refresh_token, access_token, 
@@ -170,6 +172,4 @@ class StravaHandler:
                 logger.exception(str(e))
                 raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
             
-            res['refreshed'] = True
-            res['access'] = strava_token.get('access_token')
-            return res
+            return strava_token.get('access_token')

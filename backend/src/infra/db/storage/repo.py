@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 
-from infra.db.orm.models import User, Token
+from infra.db.orm.models import User, UserInfo, Token
 from config.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,21 +33,8 @@ async def get_user_by_id(user_id: UUID,
         raise HTTPException(status_code=400, detail=str(e))
 
         
-async def add_user(user: User,
-                   db: AsyncSession) -> None:
-    try:
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-    except Exception as e:
-        logger.exception(str(e))
-        await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-async def update_user(user: User,
-                      db: AsyncSession) -> None:
-    
+async def save_user(user: User,
+                   db: AsyncSession) -> User:
     try:
         db.add(user)
         await db.commit()
@@ -57,6 +44,20 @@ async def update_user(user: User,
         logger.exception(str(e))
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# async def update_user(user: User,
+#                       db: AsyncSession) -> User:
+    
+#     try:
+#         db.add(user)
+#         await db.commit()
+#         await db.refresh(user)
+#         return user
+#     except Exception as e:
+#         logger.exception(str(e))
+#         await db.rollback()
+#         raise HTTPException(status_code=400, detail=str(e))
 
 
 async def delete_user(user: User,
@@ -69,6 +70,34 @@ async def delete_user(user: User,
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+async def save_user_info(user_info:UserInfo,
+                        db:AsyncSession)->UserInfo:
+    try:
+        db.add(user_info)
+        await db.commit()
+        await db.refresh(user_info)
+        return user_info
+    except Exception as e:
+        logger.exception(str(e))
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+    
+async def get_user_info(user_id:UUID,
+                        db:AsyncSession)->UserInfo | None:
+    try:
+        res = await db.execute(
+            select(UserInfo).where(UserInfo.user_id == user_id)
+        )
+        info = res.scalar_one_or_none()
+        if info is None:
+            return None
+        return info 
+
+    except Exception as e:
+        logger.exception(str(e))
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 async def get_refresh_token(user_id:UUID,
                             db:AsyncSession)-> str | None:
@@ -103,3 +132,4 @@ async def add_refresh_token(user_id:UUID,
         logger.exception(str(e))
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+    

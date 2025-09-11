@@ -1,6 +1,7 @@
 from uuid import UUID, uuid4
 from typing import Optional, List
 from datetime import datetime, timezone
+from sqlalchemy import Column, JSON, UniqueConstraint
 from sqlmodel import SQLModel, Field, Relationship
 
 # --- User ---
@@ -12,10 +13,22 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     provider: str = Field(default="local")  # Default to "local" for email/password users
 
-    tokens: List["Token"] = Relationship(back_populates="user")
-    third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user")
-    train_sessions: List["TrainSession"] = Relationship(back_populates="user")
+    user_info:List["UserInfo"] = Relationship(back_populates="user", cascade_delete=True)
+    tokens: List["Token"] = Relationship(back_populates="user", cascade_delete=True)
+    third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user", cascade_delete=True)
+    train_sessions: List["TrainSession"] = Relationship(back_populates="user", cascade_delete=True)
     llms: List["LLM"] = Relationship(back_populates="user")
+
+class UserInfo(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id")
+    height:Optional[float] = None
+    weight:Optional[float] = None
+    age:Optional[int] = None
+    sex:Optional[str] = None
+    train_goal: Optional[str] = None
+
+    user: Optional[User] = Relationship(back_populates="user_info")
 
 class Token(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -43,29 +56,53 @@ class ThirdPartyToken(SQLModel, table=True):
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    provider: Optional[str] = None
+    activity_id: int = Field(index=True)
+    created_at: datetime = Field(default_factory= lambda: datetime.now(timezone.utc))
     train_date: datetime
-    train_type: str
-    train_detail: str
-
-
-    user: Optional[User] = Relationship(back_populates="train_sessions")
-    result: Optional["TrainResult"] = Relationship(back_populates="session")
-    
-
-class TrainResult(SQLModel, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    session_id: Optional[UUID] = Field(foreign_key="trainsession.id", nullable=False)
-    stream_data1: Optional[str] = None  # json/text
-    stream_data2: Optional[str] = None  # json/text TODO: 스트림데이터 저장 추후 업데이트
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
     analysis_result: Optional[str] = None
     
-    session: Optional[TrainSession] = Relationship(back_populates="result")
+    user: Optional[User] = Relationship(back_populates="train_sessions")
+    stream: Optional["TrainSessionStream"] = Relationship(back_populates="session", cascade_delete=True)
+    laps: List["TrainSessionLap"] = Relationship(back_populates="session", cascade_delete=True)
+    
+    __table_args__ = (
+        UniqueConstraint("provider", "activity_id", name="uq_provider_activity"),
+    )
+    
+
+class TrainSessionStream(SQLModel, table=True):
+    # 스트림 데이터는 jsonstring 으로 저장
+    session_id: UUID = Field(foreign_key="trainsession.id", primary_key=True)
+    heartrate: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    cadence: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    distance: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    velocity: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    altitude: Optional[List[float]] = Field(default=None, sa_column=Column(JSON))
+    session: Optional[TrainSession] = Relationship(back_populates="stream")
+    
+class TrainSessionLap(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    session_id: Optional[UUID] = Field(foreign_key="trainsession.id", nullable=False)
+    lap_index: int
+    distance: float  # meters
+    elapsed_time: int  # seconds
+    average_speed: float  # m/s
+    max_speed: float  # m/s
+    average_heartrate: Optional[float] = None
+    max_heartrate: Optional[float] = None
+    average_cadence: Optional[float] = None
+    elevation_gain:Optional[float] = None
+    
+    session: Optional[TrainSession] = Relationship(back_populates="laps")
     
 class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    created_at: datetime = Field(default_factory=datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc))
     llm_type: str     #TODO: enum
     llm_result: str
 

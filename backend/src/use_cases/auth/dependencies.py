@@ -1,12 +1,27 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config.exceptions import TokenError
+from sqlalchemy.ext.asyncio import AsyncSession
+from infra.db.storage.session import get_session
+from uuid import UUID
 
 from schemas.models import TokenPayload
 from adapters import TokenAdapter
+from infra.db.storage.repo import get_user_by_id
 
 auth_scheme = HTTPBearer()
 token_adapter = TokenAdapter()
+
+
+
+async def get_test_user() -> TokenPayload:
+    """테스트 유저 """
+    return TokenPayload(
+        user_id=UUID("7c311ca58af9472194f70fd4cf8f9b90"),
+        exp=0,
+        iat=0,
+        token_type="access"
+    )
 
 async def get_current_user(
     access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)
@@ -17,6 +32,24 @@ async def get_current_user(
         
     except TokenError as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
+    
+async def validate_current_user(
+    db:AsyncSession=Depends(get_session),
+    access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)
+) -> bool:
+    """헤더의 jwt 사용자 ID validate"""
+    try:
+        payload = token_adapter.verify_access_token(access_cred.credentials)
+        user = await get_user_by_id(user_id=payload.user_id, db=db) 
+        if not user:
+            raise HTTPException(status_code=400, detail="invalid user token")
+        return True
+    except HTTPException:
+        raise
+    except TokenError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="error validating user token")
 
 async def get_current_header(
     access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)

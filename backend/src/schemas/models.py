@@ -14,24 +14,68 @@ class TokenPayload(BaseModel):  ## jwt payload 용
 class RefreshTokenResult(BaseModel):
     token:str
     expires_at:int
-    
 
-############### 응답모델
-class TokenResponse(BaseModel):
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
 
-class AccountResponse(BaseModel):
-    id: UUID
-    email: EmailStr
-    name: Optional[str] = None 
-    provider: str = "local"
+
+
     
-class LoginResponse(BaseModel):
-    token: Optional[TokenResponse] = None
-    user: AccountResponse
-    connected: List[str] = []
+########
+# raw data -> 분석모델 
+class LapData(BaseModel):
+    lap_index: int
+    distance: float  # meters
+    elapsed_time: int  # seconds
+    average_speed: float  # m/s
+    max_speed: float  # m/s
+    average_heartrate: Optional[float] = None
+    max_heartrate: Optional[float] = None
+    average_cadence: Optional[float] = None
+    elevation_gain:Optional[float] = None
+
+    class Config:
+        from_attributes = True  # ORM 객체 지원
+
+class StreamData(BaseModel):
+    heartrate: Optional[List[float]] = None
+    cadence: Optional[List[float]] = None
+    distance: Optional[List[float]] = None
+    velocity: Optional[List[float]] = None
+    altitude: Optional[List[float]] = None
+    time: Optional[List[float]] = None
+
+    class Config:
+        from_attributes = True  # ORM 객체 지원
+
+class ActivityData(BaseModel):
+    activity_id: int
+    provider: Optional[str] = None
+    distance: Optional[float] = None
+    elapsed_time: int
+    sport_type: str
+    start_date: datetime
+    average_speed:Optional[float] = None
+    max_speed:Optional[float] = None
+    average_heartrate:Optional[float] = None
+    max_heartrate:Optional[float] = None
+    average_cadence:Optional[float] = None
+    analysis_result : Optional[str] = None
+
+class UserInfoData(BaseModel):
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    age: Optional[int] = None
+    sex: Optional[str] = None
+    train_goal: Optional[str] = None
+
+    class Config:
+        from_attributes = True  # ORM 객체 지원
     
+class CoachAdvice(BaseModel):
+    user_id:UUID
+    created_at:datetime
+    advice:str
+
+
 
 
 ####### 요청 모델
@@ -45,25 +89,43 @@ class SignupRequest(BaseModel):
     email: EmailStr
     pwd: str
     name: str
-    
-########
 
-class TrainSession(BaseModel):
-    session_id:str
-    created_at:datetime
-    distance:float
-    stream_data:dict  ## TODO heartrate,watts,
+class AccountRequest(BaseModel):
+    name:Optional[str] = None
+    pwd:Optional[str] = None
+    provider:Optional[str] = None
+    info:Optional[UserInfoData] = None
     
+
+
+
+############### 응답모델
+class TokenResponse(BaseModel):
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+
+class AccountResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    name: Optional[str] = None
+    provider: str
+    info: Optional[UserInfoData] = None
     
-class TrainGoal(BaseModel):
-    user_id:UUID
-    goal:str
-    target_date:datetime
-    created_at:datetime
+
     
-class CoachAdvice(BaseModel):
-    user_id:UUID
-    created_at:datetime
-    advice:str
+class LoginResponse(BaseModel):
+    token: Optional[TokenResponse] = None
+    user: AccountResponse
+    connected: List[str] = []
     
-    
+class TrainResponse(BaseModel):
+    session_id:UUID
+    train_date:datetime
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
+    analysis_result: Optional[str] = None
+
+class TrainDetailResponse(BaseModel):
+    laps:Optional[List[LapData]] = None
+    stream : Optional[StreamData] = None
