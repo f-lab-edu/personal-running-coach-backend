@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config.exceptions import TokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 from infra.db.storage.session import get_session
+from uuid import UUID
 
 from schemas.models import TokenPayload
 from adapters import TokenAdapter
@@ -10,6 +11,17 @@ from infra.db.storage.repo import get_user_by_id
 
 auth_scheme = HTTPBearer()
 token_adapter = TokenAdapter()
+
+
+
+async def get_test_user() -> TokenPayload:
+    """테스트 유저 """
+    return TokenPayload(
+        user_id=UUID("7c311ca58af9472194f70fd4cf8f9b90"),
+        exp=0,
+        iat=0,
+        token_type="access"
+    )
 
 async def get_current_user(
     access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)

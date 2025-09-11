@@ -1,29 +1,41 @@
 from abc import ABC, abstractmethod
-from schemas.models import AccountResponse
+from uuid import UUID
+from typing import Optional
+
+from schemas.models import AccountResponse, UserInfoData
+
+
 
 class AccountPort(ABC):
     
     @abstractmethod
-    def create_account(self, email:str, pwd:str, name:str)->AccountResponse:  
+    async def create_account(self, email:str, pwd:str, name:str, provider: str)->AccountResponse:  
         ...
         
     @abstractmethod
-    def get_account(self, email:str)->AccountResponse : 
+    async def get_account(self, email:str)->AccountResponse : 
+        ...
+
+    @abstractmethod
+    async def get_account_by_id(self, user_id:UUID)->AccountResponse : 
         ...
         
     @abstractmethod
-    def login_account(self, email:str, pwd:str)->AccountResponse : 
+    async def login_account(self, email:str, pwd:str)->AccountResponse : 
         ...
         
     @abstractmethod
-    def update_account(self, token:str, acct_response:str)->AccountResponse : 
+    async def provider_login(self, email:str, provider: str, name: Optional[str] = None)->AccountResponse : 
         ...
         
     @abstractmethod
-    def provider_login(self, email:str, pwd:str)->AccountResponse : 
+    async def update_account(self, user_id:UUID, pwd: str, name: str, update_info:UserInfoData)->AccountResponse : 
         ...
         
     @abstractmethod
-    def deactivate_account(self, email:str)->bool : 
+    async def deactivate_account(self, email:str)->bool : 
         ...
-        
+    
+    @abstractmethod
+    async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
+        ...

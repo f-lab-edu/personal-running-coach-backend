@@ -7,8 +7,7 @@ from schemas.models import (ActivityData,
                             LapData, 
                             StreamData, 
                             TrainResponse, 
-                            TrainDetailResponse, 
-                            TrainGoal)
+                            TrainDetailResponse)
 
 class TrainingPort(ABC):
     @abstractmethod
@@ -50,17 +49,17 @@ class TrainingPort(ABC):
         ...
     
     
-    ### 훈련 목표
-    @abstractmethod
-    def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
-        ...
+    # ### 훈련 목표
+    # @abstractmethod
+    # def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+    #     ...
         
-    @abstractmethod
-    def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
-        ...
+    # @abstractmethod
+    # def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+    #     ...
         
-    @abstractmethod
-    def get_training_goal(self, user_id:UUID)->TrainGoal:
-        ...
+    # @abstractmethod
+    # def get_training_goal(self, user_id:UUID)->TrainGoal:
+    #     ...
         
         

@@ -13,10 +13,22 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     provider: str = Field(default="local")  # Default to "local" for email/password users
 
+    user_info:List["UserInfo"] = Relationship(back_populates="user", cascade_delete=True)
     tokens: List["Token"] = Relationship(back_populates="user", cascade_delete=True)
     third_party_tokens: List["ThirdPartyToken"] = Relationship(back_populates="user", cascade_delete=True)
     train_sessions: List["TrainSession"] = Relationship(back_populates="user", cascade_delete=True)
     llms: List["LLM"] = Relationship(back_populates="user")
+
+class UserInfo(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id")
+    height:Optional[float] = None
+    weight:Optional[float] = None
+    age:Optional[int] = None
+    sex:Optional[str] = None
+    train_goal: Optional[str] = None
+
+    user: Optional[User] = Relationship(back_populates="user_info")
 
 class Token(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)

@@ -9,8 +9,7 @@ from schemas.models import (ActivityData,
                             LapData, 
                             StreamData, 
                             TrainResponse, 
-                            TrainDetailResponse,
-                            TrainGoal)
+                            TrainDetailResponse)
 from infra.db.storage import activity_repo as repo
 from config.logger import get_logger
 
@@ -117,14 +116,14 @@ class TrainingAdapter(TrainingPort):
         ...
     
     
-    ### 훈련 목표
-    def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
-        ...
+    # ### 훈련 목표
+    # def set_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+    #     ...
         
-    def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
-        ...
+    # def update_training_goal(self, user_id:UUID, training_goal:TrainGoal)->bool:
+    #     ...
         
-    def get_training_goal(self, user_id:UUID)->TrainGoal:
-        ...
+    # def get_training_goal(self, user_id:UUID)->TrainGoal:
+    #     ...
         
         

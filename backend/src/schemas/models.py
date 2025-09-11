@@ -18,17 +18,6 @@ class RefreshTokenResult(BaseModel):
 
 
 
-####### 요청 모델
-# 일반 로그인
-class LoginRequest(BaseModel):
-    email: EmailStr
-    pwd: str 
-
-# 회원가입 요청
-class SignupRequest(BaseModel):
-    email: EmailStr
-    pwd: str
-    name: str
     
 ########
 # raw data -> 분석모델 
@@ -70,19 +59,42 @@ class ActivityData(BaseModel):
     max_heartrate:Optional[float] = None
     average_cadence:Optional[float] = None
     analysis_result : Optional[str] = None
-    
 
-    
-class TrainGoal(BaseModel):
-    user_id:UUID
-    goal:str
-    target_date:datetime
-    created_at:datetime
+class UserInfoData(BaseModel):
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    age: Optional[int] = None
+    sex: Optional[str] = None
+    train_goal: Optional[str] = None
+
+    class Config:
+        from_attributes = True  # ORM 객체 지원
     
 class CoachAdvice(BaseModel):
     user_id:UUID
     created_at:datetime
     advice:str
+
+
+
+
+####### 요청 모델
+# 일반 로그인
+class LoginRequest(BaseModel):
+    email: EmailStr
+    pwd: str 
+
+# 회원가입 요청
+class SignupRequest(BaseModel):
+    email: EmailStr
+    pwd: str
+    name: str
+
+class AccountRequest(BaseModel):
+    name:Optional[str] = None
+    pwd:Optional[str] = None
+    provider:Optional[str] = None
+    info:Optional[UserInfoData] = None
     
 
 
@@ -95,8 +107,11 @@ class TokenResponse(BaseModel):
 class AccountResponse(BaseModel):
     id: UUID
     email: EmailStr
-    name: Optional[str] = None 
-    provider: str = "local"
+    name: Optional[str] = None
+    provider: str
+    info: Optional[UserInfoData] = None
+    
+
     
 class LoginResponse(BaseModel):
     token: Optional[TokenResponse] = None
