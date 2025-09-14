@@ -4,12 +4,14 @@ from openai import AsyncOpenAI
 import json
 
 from schemas.models import UserInfoData, TrainResponse
+from config.logger import get_logger
 
+logger = get_logger(__file__)
 
 class LLMAdapter(LLMPort):    
     def __init__(self, api_key:str):
         self.client = AsyncOpenAI(api_key=api_key)
-
+        self.model = "gpt-5-nano"
 
         self.functions = [
             {
@@ -68,7 +70,7 @@ class LLMAdapter(LLMPort):
         return (
             f"{user_summary}\n"
             f"{session_summary}\n"
-            "위 데이터를 참고하여 일주일 훈련 계획을 생성해줘."
+            
         )
     
 
@@ -78,9 +80,11 @@ class LLMAdapter(LLMPort):
         Function calling을 통해 훈련 계획 생성
         """
         prompt = self._preprocess_prompt(user_info, training_sessions)
+        prompt += "\n위 데이터를 참고하여 일주일 훈련 계획을 생성해줘."
+
 
         response = await self.client.chat.completions.create(
-            model="gpt-4o-mini",   # 또는 gpt-4.1, gpt-3.5 등 선택
+            model=self.model,
             messages=[
                 {"role": "system", "content": "너는 러닝 코치야."},
                 {"role": "user", "content": prompt},
@@ -91,7 +95,7 @@ class LLMAdapter(LLMPort):
 
         message = response.choices[0].message
         if message.function_call:
-            args = json.loads(message["function_call"]["arguments"])
+            args = json.loads(message.function_call.arguments)
             return args["plan"]
 
         return []
@@ -106,14 +110,15 @@ class LLMAdapter(LLMPort):
         일반 프롬프트로 코치 피드백 생성
         """
         prompt = self._preprocess_prompt(user_info, training_sessions)
-        prompt += "\n위 훈련 데이터를 바탕으로 사용자의 현재 상태와 전반적인 코멘트를 작성해줘."
+        prompt += "\n위 훈련 데이터를 바탕으로 현재 사용자가 목표를 달성하기 위해서 잘하고 있는지 한문장으로 간략하게 평가해줘"
 
         response = await self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=self.model,
             messages=[
                 {"role": "system", "content": "너는 러닝 코치야."},
                 {"role": "user", "content": prompt},
             ],
         )
+        logger.warning(response)
 
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content

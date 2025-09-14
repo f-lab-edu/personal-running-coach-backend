@@ -31,9 +31,9 @@ class LLMHandler:
 
     async def generate_advices(self, payload:TokenPayload)->str:
 
-        user_info = self.account_adapter.get_user_info_by_id(user_id=payload.user_id)
+        user_info = await self.account_adapter.get_user_info_by_id(user_id=payload.user_id)
 
-        sessions = self.training_adapter.get_sessions_by_date(user_id=payload.user_id)
+        sessions = await self.training_adapter.get_sessions_by_date(user_id=payload.user_id)
 
         res = await self.llm_adapter.generate_coach_advice(user_info=user_info,
                                                         training_sessions=sessions)

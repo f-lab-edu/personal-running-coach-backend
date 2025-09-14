@@ -34,5 +34,6 @@ async def coach_advice(
     payload: TokenPayload = Depends(get_test_user),
     handler:LLMHandler = Depends(get_handler)
 ):
+    return await handler.generate_advices(payload=payload)
     # 사용자 데이터 기반 코치 조언 생성
     ...
