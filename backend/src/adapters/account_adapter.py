@@ -104,7 +104,14 @@ class AccountAdapter(AccountPort):
         except Exception as e:
             logger.exception(f"Error getting account by ID: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
-        
+    
+
+    async def get_user_info_by_id(self, user_id:UUID)->UserInfoData : 
+        return await repo.get_user_info(user_id=user_id,
+                                        db=self.db)
+
+
+
     async def login_account(self, email: str, pwd: str) -> AccountResponse:
         """
         이메일, 비밀번호를 사용한 일반 로그인
