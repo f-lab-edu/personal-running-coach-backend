@@ -26,6 +26,7 @@ async def add_train_session(db: AsyncSession,
             distance=activity.distance,
             avg_speed=activity.average_speed,
             total_time = activity.elapsed_time,
+            activity_title=activity.activity_title,
             analysis_result=activity.analysis_result
         )
         

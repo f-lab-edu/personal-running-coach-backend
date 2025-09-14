@@ -102,6 +102,7 @@ class TrainingAdapter(TrainingPort):
                 distance=session.distance,
                 avg_speed=session.avg_speed,
                 total_time=session.total_time,
+                activity_title=session.activity_title,
                 analysis_result=session.analysis_result
             ) for session in sessions
         ]

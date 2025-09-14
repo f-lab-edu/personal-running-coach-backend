@@ -58,6 +58,7 @@ class ActivityData(BaseModel):
     average_heartrate:Optional[float] = None
     max_heartrate:Optional[float] = None
     average_cadence:Optional[float] = None
+    activity_title:Optional[str] = None
     analysis_result : Optional[str] = None
 
 class UserInfoData(BaseModel):
@@ -124,6 +125,7 @@ class TrainResponse(BaseModel):
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
+    activity_title:Optional[str] = None
     analysis_result: Optional[str] = None
 
 class TrainDetailResponse(BaseModel):

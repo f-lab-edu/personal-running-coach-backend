@@ -9,6 +9,7 @@ interface TrainResponse {
 	distance?: number;
 	avg_speed?: number;
 	total_time?: number;
+	activity_title?: string;
 	analysis_result?: string;
 }
 
@@ -42,7 +43,7 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 		setLoading(true);
 		fetchSchedules(token.access_token)
 			.then(data => {
-				// console.log(data);
+				console.log(data);
 				setSchedules(data);
 				})
 			.catch(e => setError(e.message))
@@ -139,7 +140,7 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 												onClick={() => navigate(`/training/${sch.session_id}`, { state: { session: sch } })}
 												title={sch.analysis_result || '훈련'}
 											>
-												{sch.analysis_result || '훈련'}
+												{sch.activity_title || '훈련'}
 											</div>
 										))}
 									</td>

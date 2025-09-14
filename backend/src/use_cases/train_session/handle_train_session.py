@@ -72,18 +72,18 @@ class TrainSessionHandler:
                                                             laps=lap_data,
                                                             stream=stream_data)
                 # logger.warning(f"analyze: {time.time() - start:.3f} sec")
-                
-                activity.analysis_result = train_res                
+                activity.activity_title = train_res.get("title", "러닝")
+                activity.analysis_result = train_res.get("detail", "세부내용 없음")  
                 # schedules.append(train_res)
                 
                 ## db 저장
-                start = time.time()
+                # start = time.time()
                 await self.db_adapter.save_session(user_id=payload.user_id,
                                              activity=activity,
                                              laps=lap_data,
                                              stream=stream_data
                                              )
-                logger.warning(f"save session: {time.time() - start:.3f} sec")
+                # logger.warning(f"save session: {time.time() - start:.3f} sec")
             ## 사용자에게 리턴
             # return schedules
             return True

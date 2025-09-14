@@ -63,6 +63,7 @@ class TrainSession(SQLModel, table=True):
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
+    activity_title: Optional[str] = None
     analysis_result: Optional[str] = None
     
     user: Optional[User] = Relationship(back_populates="train_sessions")
@@ -104,6 +105,10 @@ class LLM(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc))
     llm_type: str     #TODO: enum
-    llm_result: str
+    llm_result: dict = Field(sa_column=Column(JSON))
 
     user: Optional[User] = Relationship(back_populates="llms")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "llm_type", name="uq_llm"),
+    )
