@@ -104,11 +104,7 @@ class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc))
-    llm_type: str     #TODO: enum
-    llm_result: dict = Field(sa_column=Column(JSON))
+    workout: Optional[List[dict]] = Field(default=None, sa_column=Column(JSON))
+    coach_advice: Optional[str] = None
 
     user: Optional[User] = Relationship(back_populates="llms")
-
-    __table_args__ = (
-        UniqueConstraint("user_id", "llm_type", name="uq_llm"),
-    )

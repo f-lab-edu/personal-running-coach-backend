@@ -71,10 +71,13 @@ class UserInfoData(BaseModel):
     class Config:
         from_attributes = True  # ORM 객체 지원
     
-class CoachAdvice(BaseModel):
-    user_id:UUID
-    created_at:datetime
-    advice:str
+class LLMSessionResult(BaseModel):
+    day: str
+    workout_type: str
+    distance_km: float
+    pace: Optional[str] = None
+    notes: Optional[str] = None
+
 
 
 
@@ -131,3 +134,7 @@ class TrainResponse(BaseModel):
 class TrainDetailResponse(BaseModel):
     laps:Optional[List[LapData]] = None
     stream : Optional[StreamData] = None
+
+class LLMResponse(BaseModel):
+    sessions:Optional[List[LLMSessionResult]] = None
+    advice:Optional[str] = None

@@ -1,3 +1,5 @@
+"""LLM 서드파티 api 호출 아답터"""
+
 from ports.llm_port import LLMPort
 from typing import List
 from openai import AsyncOpenAI
