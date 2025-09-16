@@ -14,10 +14,10 @@ logger = get_logger(__name__)
 async def save_llm_predict(db:AsyncSession,
                           llm:LLM)->LLM:
     try:
-        db.add(llm)
+        merged = await db.merge(llm)
         await db.commit()
-        await db.refresh(llm)
-        return llm
+        # await db.refresh(llm)
+        return merged
     except Exception as e:
         logger.exception(str(e))
         await db.rollback()
@@ -25,7 +25,7 @@ async def save_llm_predict(db:AsyncSession,
 
 # read
 async def get_llm_predict_by_user_id(db:AsyncSession,
-                                     user_id:UUID)->LLM:
+                                     user_id:UUID)->LLM | None:
     try:
         res = await db.execute(
             select(LLM).where(LLM.user_id == user_id)

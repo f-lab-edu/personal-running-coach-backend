@@ -18,3 +18,6 @@ class LLMDataPort(ABC):
     async def get_llm_predict(self, user_id:UUID, )->LLMResponse :
         ...
         
+    @abstractmethod
+    async def is_llm_call_available(self, user_id:UUID) -> bool:
+        ...

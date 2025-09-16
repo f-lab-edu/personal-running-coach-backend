@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 from typing import Optional, List
 from datetime import datetime, timezone
-from sqlalchemy import Column, JSON, UniqueConstraint
+from sqlalchemy import Column, JSON, UniqueConstraint, DateTime
 from sqlmodel import SQLModel, Field, Relationship
 
 # --- User ---
@@ -103,7 +103,14 @@ class TrainSessionLap(SQLModel, table=True):
 class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    created_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc))
+    executed_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc),
+                                  sa_column=Column(
+                                        DateTime(timezone=True),  # ✅ tz-aware datetime
+                                        onupdate=datetime.now(timezone.utc)
+                                    )
+                                )
+                                #   sa_column_kwargs={"onupdate": datetime.now(timezone.utc)}
+                                #   )
     workout: Optional[List[dict]] = Field(default=None, sa_column=Column(JSON))
     coach_advice: Optional[str] = None
 
