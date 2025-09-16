@@ -1,3 +1,23 @@
+// Fetch AI generated sessions and advice (GET /ai/get)
+export async function fetchAnalysis() {
+  const token = sessionStorage.getItem('access_token');
+  const res = await fetch(`${BASE_URL}/ai/get`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch analysis');
+  return await res.json();
+}
+
+// Generate new AI sessions and advice (POST /ai/generate)
+export async function generateAnalysis() {
+  const token = sessionStorage.getItem('access_token');
+  const res = await fetch(`${BASE_URL}/ai/generate`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to generate analysis');
+  return await res.json();
+}
 const BASE_URL = 'http://localhost:8000';
 
 // Fetch current user profile (GET /profile/me)
