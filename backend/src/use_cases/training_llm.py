@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 from typing import Optional
 
 from ports.llm_port import LLMPort
@@ -59,10 +60,14 @@ class LLMHandler:
             if not is_available:
                 return None
             
-            advice = await self.llm_adapter.generate_coach_advice(user_info=user_info,
+            advice, plans = await asyncio.gather(
+                await self.llm_adapter.generate_coach_advice(user_info=user_info,
+                                                            training_sessions=sessions),
+                await self.llm_adapter.generate_training_plan(user_info=user_info,
                                                             training_sessions=sessions)
-            plans = await self.llm_adapter.generate_training_plan(user_info=user_info,
-                                                            training_sessions=sessions)
+
+
+            )
             
 
             # 데이터 저장
