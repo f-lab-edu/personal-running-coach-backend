@@ -1,0 +1,6 @@
+### TOKEN ###
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+REFRESH_TOKEN_EXPIRE_DAYS = 30
+
+
+PLATFORM = ['facebook', 'kakao', ]

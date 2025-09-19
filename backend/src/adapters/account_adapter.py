@@ -1,0 +1,303 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
+from typing import Optional
+from uuid import UUID
+
+from ports.account_port import AccountPort
+from schemas.models import AccountResponse, UserInfoData
+from infra.db.orm.models import User, UserInfo
+from infra.db.storage import repo
+from infra.security import hash_password, verify_password, decrypt_token, TokenInvalidError
+from config.logger import get_logger
+from config.settings import security
+
+
+logger = get_logger(__name__)
+
+class AccountAdapter(AccountPort):
+    def __init__(self,db:AsyncSession):
+        self.db = db
+    
+    async def create_account(self, email: str, pwd: str, name: str, provider: str = "local") -> AccountResponse:
+        """계정 생성. 
+            일반 계정 생성과 외부 프로바이더 계정생성 모두 가능
+        return: AccountResponse
+        """
+        try:
+            # 기존 존재하는 유저인지 확인
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            if user:
+                raise HTTPException(status_code=400, detail="Email already exist")
+            
+            # Hash password only for local accounts
+            hashed_password = None
+            if provider == "local":
+                hashed_password = await hash_password(pwd)
+            
+            # Create new user
+            new_user = User(
+                email=email,
+                hashed_pwd=hashed_password,
+                name=name,
+                provider=provider
+            )
+            
+            await repo.save_user(new_user, self.db)
+            
+            return AccountResponse(
+                id=new_user.id,
+                email=new_user.email,
+                name=new_user.name,
+                provider=new_user.provider
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Internal server error {e}")
+        
+    async def get_account(self, email: str) -> AccountResponse:
+        """이메일로 유저정보 조회"""
+        try:
+            # Get user from database
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                provider=user.provider
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(f"Error getting account: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def get_account_by_id(self, user_id: UUID) -> AccountResponse:
+        """사용자 ID로 유저정보 조회"""
+        try:
+            
+            # Get user from database by ID
+            user = await repo.get_user_by_id(user_id=user_id, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+
+            info = await repo.get_user_info(user.id, db=self.db)
+            
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                provider=user.provider,
+                info=info
+            )
+            
+        except HTTPException:
+            raise
+        except ValueError as e:
+            logger.error(f"Invalid user ID format: {e}")
+            raise HTTPException(status_code=400, detail="Invalid user ID format")
+        except Exception as e:
+            logger.exception(f"Error getting account by ID: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+    async def get_user_info_by_id(self, user_id:UUID)->UserInfoData : 
+        return await repo.get_user_info(user_id=user_id,
+                                        db=self.db)
+
+
+
+    async def login_account(self, email: str, pwd: str) -> AccountResponse:
+        """
+        이메일, 비밀번호를 사용한 일반 로그인
+        
+        return: AccountResponse
+        """
+        try:
+            # 유저 확인
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            if not user:
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+            
+            # 비밀번호 확인
+            is_valid = await verify_password(pwd, user.hashed_pwd)
+            if not is_valid:
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+
+            info = await repo.get_user_info(user_id=user.id, db=self.db)
+            
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name, 
+                provider=user.provider,
+                info=info
+            )
+        
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
+        
+    async def provider_login(self, email: str, provider: str, name: Optional[str] = None) -> AccountResponse:
+        """OAuth provider login
+            구글 로그인 등 외부 프로바이더 로그인.
+            유저 테이블에 존재하지 않을 시 (새 로그인 시), 유저 생성 후 유저 리턴
+             
+            return: AccountResponse
+        """
+        try:
+            # 유저 테이블 조회
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            
+            if user:
+                # 유저 있음. 유저 리턴
+                info = await repo.get_user_info(user.id, db=self.db)
+
+                return AccountResponse(
+                    id=user.id,
+                    email=user.email,
+                    name=user.name,
+                    provider=user.provider,
+                    info=info
+                )
+            else:
+                # 유저 없음. 새 유저 생성
+                new_user = User(
+                    email=email,
+                    name=name,
+                    provider=provider,
+                    hashed_pwd=None  #provider 로그인 시 비밀번호 없음. (구글 등)
+                )
+                
+                await repo.save_user(new_user, self.db)
+                
+                return AccountResponse(
+                    id=new_user.id,
+                    email=new_user.email,
+                    name=new_user.name,
+                    provider=new_user.provider
+                )
+                
+        except Exception as e:
+            logger.exception(f"Error in provider login: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def update_account(self, user_id:UUID, pwd: str, name: str, update_info:UserInfoData) -> AccountResponse:
+        """
+        유저 정보 업데이트
+        비밀번호 변경시 provider 확인 (provider = local 일때만 비밀번호 해시 저장)
+        """
+        try:
+            # db 에서 유저 확인
+            user = await repo.get_user_by_id(user_id=user_id, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+
+           ## 유저 정보 업데이트
+            if name is not None:
+                user.name = name
+            if pwd is not None and user.provider == "local":
+                user.hashed_pwd = await hash_password(pwd)
+            
+            await repo.save_user(user=user, db=self.db)
+
+            # info 업데이트
+            info = await repo.get_user_info(user.id, self.db)
+
+            if info is None:
+                info = UserInfo(
+                    user_id=user_id,
+                    **update_info.model_dump(exclude_unset=True)
+                )
+            else:
+                for field in UserInfoData.model_fields.keys():  
+                    value = getattr(update_info, field)
+                    if value is not None:
+                        setattr(info, field, value)
+
+            updated_info = await repo.save_user_info(user_info=info, db=self.db)
+
+            return AccountResponse(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                provider=user.provider,
+                info=updated_info
+            )
+            
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="Internal server error")
+        
+
+    async def deactivate_account(self, email: str) -> bool:
+        """계정 삭제"""
+        try:
+            # Find user by email
+            user = await repo.get_user_by_email(email=email, db=self.db)
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            #TODO: delete token  cascade??
+            
+            #TODO: delete sns connect
+            
+            # TODO: delete train session
+            
+            # Delete user
+            await repo.delete_user(user=user, db=self.db)
+            
+            return True
+        
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
+        """db에 저장된 리프레시토큰과 클라이언트의 리프래시토큰 대조 검증"""
+        try:
+            db_refresh = await repo.get_refresh_token(db=self.db,
+                                                user_id=user_id)
+            
+            # db 에 기존 refresh 없음
+            if db_refresh is None:
+                return False
+            
+            # 복호화
+            decrypted = decrypt_token(token_encrypted= db_refresh, 
+                                      key=security.encryption_key_refresh,
+                                      token_type="account_refresh"
+                                      )
+            
+            # 토큰 미스매치
+            return decrypted == refresh_token
+        
+            
+        except HTTPException:
+            raise
+        except TokenInvalidError as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        except Exception as e:
+            logger.exception(str(e))
+            raise HTTPException(status_code=500, detail="Internal server error")
+            
+        
+    
+    
+
+    # # TODO: db 에 저장된 토큰 삭제
+    # async def invalidate_refresh_token(self, jwt_str:str)->bool: 
+    #     ...

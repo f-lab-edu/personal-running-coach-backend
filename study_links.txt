@@ -1,0 +1,24 @@
+# sqlalchemy 
+
+    https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html
+
+    session
+    https://miintto.github.io/docs/python-sqlalchemy-session
+    https://docs.sqlalchemy.org/en/20/orm/session.html
+
+
+# google auth login
+    https://blog.neonkid.xyz/262
+    https://developers.google.com/identity/protocols/oauth2?hl=ko
+    https://ahn3330.tistory.com/166
+    https://m.blog.naver.com/nan17a/222182983858
+
+
+ci/cd docker
+https://www.docker.com/get-started/
+https://www.youtube.com/watch?v=eRh1LFZyEJM
+
+
+# strava api doc
+https://developers.strava.com/docs/authentication/#token-exchange
+https://developers.strava.com/docs/reference/#api-Athletes
