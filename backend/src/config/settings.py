@@ -62,6 +62,9 @@ class StravaConfig(CommonConfig):
     auth_endpoint: str = Field(default="https://www.strava.com/oauth/authorize", alias="STRAVA_AUTH_ENDPOINT")
     deauth_endpoint: str = Field(default="https://www.strava.com/oauth/deauthorize", alias="STRAVA_DEAUTH_ENDPOINT")
 
+class LLMConfig(CommonConfig):
+    secret:str = Field(default="", alias="OPENAI_SECRET")
+
 db = DatabaseConfig()
 cors = CORSConfig()
 web = WebConfig()
@@ -69,3 +72,4 @@ google = GoogleConfig()
 jwt_config = JWTConfig()
 security = SecurityConfig()
 strava = StravaConfig()
+llm = LLMConfig()

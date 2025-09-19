@@ -19,6 +19,10 @@ class AccountPort(ABC):
     @abstractmethod
     async def get_account_by_id(self, user_id:UUID)->AccountResponse : 
         ...
+
+    @abstractmethod
+    async def get_user_info_by_id(self, user_id:UUID)->UserInfoData : 
+        ...
         
     @abstractmethod
     async def login_account(self, email:str, pwd:str)->AccountResponse : 

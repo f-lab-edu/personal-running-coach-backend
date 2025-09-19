@@ -58,6 +58,7 @@ class ActivityData(BaseModel):
     average_heartrate:Optional[float] = None
     max_heartrate:Optional[float] = None
     average_cadence:Optional[float] = None
+    activity_title:Optional[str] = None
     analysis_result : Optional[str] = None
 
 class UserInfoData(BaseModel):
@@ -70,10 +71,13 @@ class UserInfoData(BaseModel):
     class Config:
         from_attributes = True  # ORM 객체 지원
     
-class CoachAdvice(BaseModel):
-    user_id:UUID
-    created_at:datetime
-    advice:str
+class LLMSessionResult(BaseModel):
+    day: str
+    workout_type: str
+    distance_km: float
+    pace: Optional[str] = None
+    notes: Optional[str] = None
+
 
 
 
@@ -124,8 +128,13 @@ class TrainResponse(BaseModel):
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
     total_time: Optional[float] = None
+    activity_title:Optional[str] = None
     analysis_result: Optional[str] = None
 
 class TrainDetailResponse(BaseModel):
     laps:Optional[List[LapData]] = None
     stream : Optional[StreamData] = None
+
+class LLMResponse(BaseModel):
+    sessions:Optional[List[LLMSessionResult]] = None
+    advice:Optional[str] = None
