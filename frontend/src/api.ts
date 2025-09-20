@@ -1,7 +1,8 @@
+import { API_BASE_URL } from './config';
 // Fetch AI generated sessions and advice (GET /ai/get)
 export async function fetchAnalysis() {
   const token = sessionStorage.getItem('access_token');
-  const res = await fetch(`${BASE_URL}/ai/get`, {
+    const res = await fetch(`${API_BASE_URL}/ai/get`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch analysis');
@@ -11,19 +12,19 @@ export async function fetchAnalysis() {
 // Generate new AI sessions and advice (POST /ai/generate)
 export async function generateAnalysis() {
   const token = sessionStorage.getItem('access_token');
-  const res = await fetch(`${BASE_URL}/ai/generate`, {
+    const res = await fetch(`${API_BASE_URL}/ai/generate`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to generate analysis');
   return await res.json();
 }
-const BASE_URL = 'http://localhost:8000';
+
 
 // Fetch current user profile (GET /profile/me)
 export async function fetchProfile() {
   const token = sessionStorage.getItem('access_token');
-  const res = await fetch(`${BASE_URL}/profile/me`, {
+    const res = await fetch(`${API_BASE_URL}/profile/me`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -45,7 +46,7 @@ export async function updateProfile(data: {
   };
 }) {
   const token = sessionStorage.getItem('access_token');
-  const res = await fetch(`${BASE_URL}/profile/update`, {
+    const res = await fetch(`${API_BASE_URL}/profile/update`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -60,10 +61,10 @@ export async function updateProfile(data: {
 
 // Fetch train session detail (GET /trainsession/{session_id})
 export async function fetchTrainDetail(session_id: string) {
-  const url = `${BASE_URL}/trainsession/${session_id}`;
+  const url = `${API_BASE_URL}/trainsession/${session_id}`;
   const headers: Record<string, string> = {};
   const token = sessionStorage.getItem('access_token');
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch session detail');
   return await res.json();
@@ -72,9 +73,9 @@ export async function fetchTrainDetail(session_id: string) {
 
 // Fetch train schedules (GET /trainsession/fetch-schedules)
 export async function fetchSchedules(token: string, date?: number) {
-  const url = new URL(`${BASE_URL}/trainsession/fetch-schedules`);
+  const url = new URL(`${API_BASE_URL}/trainsession/fetch-schedules`);
   if (date) url.searchParams.append('date', date.toString());
-  const res = await fetch(url.toString(), {
+    const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch schedules');
@@ -83,9 +84,9 @@ export async function fetchSchedules(token: string, date?: number) {
 
 // Fetch new schedules (GET /trainsession/fetch-new-schedules)
 export async function fetchNewSchedules(token: string, date?: number) {
-  const url = new URL(`${BASE_URL}/trainsession/fetch-new-schedules`);
+  const url = new URL(`${API_BASE_URL}/trainsession/fetch-new-schedules`);
   if (date) url.searchParams.append('date', date.toString());
-  const res = await fetch(url.toString(), {
+    const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch new schedules');
@@ -93,10 +94,10 @@ export async function fetchNewSchedules(token: string, date?: number) {
 }
 
 export async function loginWithEmail(email: string, pwd: string) {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, pwd })
+     body: JSON.stringify({ email, pwd })
   });
   if (!res.ok) throw new Error('Login failed');
   return await res.json();
@@ -104,22 +105,22 @@ export async function loginWithEmail(email: string, pwd: string) {
 
 export async function loginWithGoogle() {
   // Get Google login URL from backend
-  window.location.href = `${BASE_URL}/auth/google/login`;
+  window.location.href = `${API_BASE_URL}/auth/google/login`;
 
 }
 
 export async function signup(email: string, pwd: string, name: string) {
-  const res = await fetch(`${BASE_URL}/auth/signup`, {
+  const res = await fetch(`${API_BASE_URL}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, pwd, name })
+     body: JSON.stringify({ email, pwd, name })
   });
   return res.ok;
 }
 
 export async function connectStrava() {
   const token = sessionStorage.getItem('access_token');
-  const res = await fetch(`${BASE_URL}/auth/strava/connect`, {
+  const res = await fetch(`${API_BASE_URL}/auth/strava/connect`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Strava connect failed');
