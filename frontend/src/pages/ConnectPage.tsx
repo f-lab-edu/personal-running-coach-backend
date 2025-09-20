@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { connectStrava } from '../api';
-
-
-interface ConnectPageProps {
-  user: any;
-  thirdList: string[];
-}
+import type { ConnectPageProps } from '../types';
 
 const ConnectPage: React.FC<ConnectPageProps> = ({ user, thirdList }) => {
   const [error, setError] = useState('');

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchAnalysis, generateAnalysis } from '../api';
-import type { LLMResponse, LLMSessionResult } from '../types/llm';
+import type { LLMResponse, LLMSessionResult } from '../types';
 
 const AnalysisPage: React.FC = () => {
   const [data, setData] = useState<LLMResponse | null | undefined>(undefined);

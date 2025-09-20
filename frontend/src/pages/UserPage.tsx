@@ -2,21 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchProfile, updateProfile } from '../api';
 
-type UserInfoData = {
-	height?: number;
-	weight?: number;
-	age?: number;
-	sex?: string;
-	train_goal?: string;
-};
-
-type Profile = {
-	id: string;
-	email: string;
-	name?: string;
-	provider: string;
-	info?: UserInfoData;
-};
+import type { UserInfoData, Profile } from '../types';
 
 const UserPage: React.FC = () => {
 	const [profile, setProfile] = useState<Profile | null>(null);

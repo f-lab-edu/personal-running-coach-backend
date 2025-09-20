@@ -3,20 +3,7 @@ import { fetchSchedules, fetchNewSchedules } from '../api';
 import { calcPace } from '../utils';
 import { useNavigate } from 'react-router-dom';
 
-interface TrainResponse {
-	session_id: string;
-	train_date: string;
-	distance?: number;
-	avg_speed?: number;
-	total_time?: number;
-	activity_title?: string;
-	analysis_result?: string;
-}
-
-interface TrainingPageProps {
-	user: any;
-	token: any;
-}
+import type { TrainResponse, TrainingPageProps } from '../types';
 
 // Simple calendar rendering (no external lib)
 function getMonthDays(year: number, month: number) {
