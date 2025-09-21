@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { fetchSchedules, fetchNewSchedules } from '../api';
-import { calcPace } from '../utils';
 import { useNavigate } from 'react-router-dom';
 
 import type { TrainResponse, TrainingPageProps } from '../types';
 
 // Simple calendar rendering (no external lib)
 function getMonthDays(year: number, month: number) {
-	const firstDay = new Date(year, month, 1);
 	const lastDay = new Date(year, month + 1, 0);
 	const days = [];
 	for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -16,7 +14,7 @@ function getMonthDays(year: number, month: number) {
 	return days;
 }
 
-const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
+const TrainingPage: React.FC<TrainingPageProps> = ({ token }) => {
 	const [schedules, setSchedules] = useState<TrainResponse[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
@@ -92,8 +90,8 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ user, token }) => {
 					</thead>
 					<tbody>
 						{(() => {
-							const rows = [];
-							let cells = [];
+							const rows: React.ReactNode[] = [];
+							let cells: React.ReactNode[] = [];
 							// Empty cells for first week
 							for (let i = 0; i < firstWeekday; i++) {
 								cells.push(<td key={'empty-' + i}></td>);

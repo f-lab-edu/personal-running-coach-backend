@@ -1,6 +1,6 @@
 // ConnectPage
 export interface ConnectPageProps {
-  user: any;
+//   user: any;
   thirdList: string[];
 }
 
@@ -38,7 +38,7 @@ export interface TrainResponse {
 }
 
 export interface TrainingPageProps {
-  user: any;
+//   user: any;
   token: any;
 }
 
