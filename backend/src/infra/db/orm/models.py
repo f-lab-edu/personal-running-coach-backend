@@ -10,7 +10,7 @@ class User(SQLModel, table=True):
     email: str
     hashed_pwd: Optional[str] = Field(default=None) 
     name: Optional[str] = Field(default=None)  # Make name optional for OAuth users
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     provider: str = Field(default="local")  # Default to "local" for email/password users
 
     user_info:List["UserInfo"] = Relationship(back_populates="user", cascade_delete=True)
@@ -58,7 +58,7 @@ class TrainSession(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     provider: Optional[str] = None
     activity_id: int = Field(index=True)
-    created_at: datetime = Field(default_factory= lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory= lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     train_date: datetime
     distance:Optional[float] = None
     avg_speed: Optional[float] = None
@@ -103,10 +103,10 @@ class TrainSessionLap(SQLModel, table=True):
 class LLM(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
-    executed_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc),
+    executed_at: datetime = Field(default_factory=lambda : datetime.now(timezone.utc).replace(tzinfo=None),
                                   sa_column=Column(
                                         DateTime(timezone=True),  # ✅ tz-aware datetime
-                                        onupdate=datetime.now(timezone.utc)
+                                        onupdate=datetime.now(timezone.utc).replace(tzinfo=None)
                                     )
                                 )
                                 #   sa_column_kwargs={"onupdate": datetime.now(timezone.utc)}
