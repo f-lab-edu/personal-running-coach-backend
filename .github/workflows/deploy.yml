@@ -19,6 +19,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /personal-running-coach-backend           # 서버 내 프로젝트 디렉토리
+            cd ~/personal-running-coach-backend           # 서버 내 프로젝트 디렉토리
             git pull origin main                # 최신 코드 가져오기
             docker compose -f docker-compose.prod.yml up -d --build
