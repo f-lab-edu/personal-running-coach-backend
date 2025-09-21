@@ -80,8 +80,10 @@ const App: React.FC = () => {
                                                                 setToken={setToken}
                                                                 setThirdList={setThirdList}/>} />
                         <Route path="/signup" element={<SignupPage />} />
-                        <Route path="/connect" element={<ConnectPage user={user} thirdList={thirdList}/>} />
-                        <Route path="/training" element={<TrainingPage user={user} token={token}/>} />
+                        <Route path="/connect" element={<ConnectPage thirdList={thirdList}/>} />
+                        <Route path="/training" element={<TrainingPage token={token}/>} />
+                        {/* <Route path="/connect" element={<ConnectPage user={user} thirdList={thirdList}/>} />
+                        <Route path="/training" element={<TrainingPage user={user} token={token}/>} /> */}
                         <Route path="/training/:session_id" element={<TrainingDetailPage />} />
                         <Route path="/analysis" element={<AnalysisPage />} />
                     </Routes>

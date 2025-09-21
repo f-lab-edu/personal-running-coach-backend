@@ -1,5 +1,6 @@
 // src/pages/Callback.tsx
 import { useEffect } from "react";
+import { API_BASE_URL } from '../config';
 import { useNavigate } from "react-router-dom";
 
 export default function StravaCallback(
@@ -25,7 +26,7 @@ export default function StravaCallback(
       }
       try {
         // Call backend with code
-        const res = await fetch(`http://localhost:8000/auth/strava/callback`,{
+  const res = await fetch(`${API_BASE_URL}/auth/strava/callback`,{
           method: 'POST',
           headers: { 'Content-Type': 'application/json',
             'Authorization' : `Bearer ${token}`,
