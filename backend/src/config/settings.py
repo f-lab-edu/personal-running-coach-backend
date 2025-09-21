@@ -7,6 +7,7 @@ ENV_DIR = Path(__file__).resolve().parent.parent
 class CommonConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_DIR / ".env",
+        # env_file=ENV_DIR / "dev.env",
         extra="ignore",
     )
     
