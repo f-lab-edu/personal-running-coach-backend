@@ -28,6 +28,8 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - DATABASE_URL=postgresql+asyncpg://user:password@db:5432/mydb
+    volumes:
+      ~/logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
