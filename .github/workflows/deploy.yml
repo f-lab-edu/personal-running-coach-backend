@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "frontend/dist/*"
-          target: "~/personal-running-coach-backend/frontend/dist"
+          target: "~/personal-running-coach/frontend/dist"
 
       # 백엔드 배포 (docker-compose)
       - name: Deploy backend
@@ -43,6 +43,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ~/personal-running-coach-backend
+            cd ~/personal-running-coach
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
