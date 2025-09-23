@@ -58,5 +58,5 @@ class LLMDataAdapter(LLMDataPort):
         # 정해진 기일 내 한번 리밋
         next_available = saved.executed_at.replace(tzinfo=timezone.utc) + timedelta(days=limiter_day)
         # next_available = saved.executed_at + timedelta(days=limiter_day)
-        print(f"{next_available} < {datetime.now(timezone.utc)} ???")
+        # print(f"{next_available} < {datetime.now(timezone.utc)} ???")
         return datetime.now(timezone.utc) >= next_available

@@ -14,26 +14,7 @@ import {
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Legend, Tooltip);
 
-interface StreamData {
-  heartrate?: number[];
-  cadence?: number[];
-  distance?: number[];
-  velocity?: number[];
-  altitude?: number[];
-  time?: number[];
-  [key: string]: number[] | undefined;
-}
-
-interface TrainDetail {
-  session_id: string;
-  train_date: string;
-  distance?: number;
-  avg_speed?: number;
-  total_time?: number;
-  analysis_result?: string;
-  stream?: StreamData;
-  [key: string]: any;
-}
+import type { StreamData, TrainDetail } from '../types';
 
 const plotFields: { key: keyof StreamData; label: string; color: string }[] = [
   { key: 'heartrate', label: 'Heart Rate', color: 'red' },

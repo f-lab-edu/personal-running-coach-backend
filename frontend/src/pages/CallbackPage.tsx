@@ -1,5 +1,6 @@
 // src/pages/Callback.tsx
 import { useEffect } from "react";
+import { API_BASE_URL } from '../config';
 import { useNavigate } from "react-router-dom";
 
 export default function CallbackPage(
@@ -21,7 +22,7 @@ export default function CallbackPage(
 
       try {
         // Call backend with code
-        const res = await fetch(`http://localhost:8000/auth/google/callback`, {
+  const res = await fetch(`${API_BASE_URL}/auth/google/callback`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
