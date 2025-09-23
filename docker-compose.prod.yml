@@ -35,7 +35,7 @@ services:
       - PYTHONPATH=/app/src
       - DATABASE_URL=postgresql+asyncpg://user:password@db:5432/mydb
     volumes:
-      ../logs/backend:/app/logs
+      - ../logs/backend:/app/logs
     depends_on:
       db:
         condition: service_healthy
