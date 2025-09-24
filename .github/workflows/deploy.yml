@@ -27,17 +27,26 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
-      # (권장) 서버의 이전 빌드 결과물 삭제
-      - name: Clean previous build on server
+      # 서버의 이전 dist 디렉토리 "전체"를 삭제
+      - name: Clean old build directory on server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            # target 디렉토리가 없으면 생성하고, 있으면 내용만 삭제합니다.
-            mkdir -p ~/personal-running-coach/frontend/dist/
-            rm -rf ~/personal-running-coach/frontend/dist/*
+            # 이전 dist 폴더를 통째로 삭제합니다.
+            rm -rf ~/personal-running-coach/frontend/dist
+
+      # 빌드 결과 dist/ 디렉토리 전체를 서버로 복사
+      - name: Upload Frontend dist to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "frontend/dist"
+          target: "~/personal-running-coach/frontend/"
 
       # 빌드 결과 dist/ 서버로 복사
       - name: Upload Frontend dist to server
