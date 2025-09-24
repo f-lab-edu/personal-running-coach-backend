@@ -5,7 +5,7 @@ from uuid import UUID
 from ports.token_port import TokenPort
 from schemas.models import TokenPayload, RefreshTokenResult
 from config.logger import get_logger
-from config.exceptions import TokenExpiredError, TokenInvalidError
+from config.exceptions import TokenExpiredError, TokenInvalidError, TokenError, InternalError
 from config import constants as con
 from config.settings import jwt_config
 
@@ -24,28 +24,32 @@ class TokenAdapter(TokenPort):
 
             return : jwt 문자열
         """ 
-        now = datetime.now(timezone.utc)
-        expires = now + timedelta(minutes=self.access_token_exp)
-        expires = int(expires.timestamp())
-        payload = TokenPayload(
-            user_id=user_id,
-            exp=expires,
-            iat=int(now.timestamp()),
-            token_type="access"
-        )
         try:
-            # pydantic v2 에서는 mode='json' 으로 UUID 도 직렬화 됨.
-            # v1 에서는 따로 uuid 직렬화 처리를 해줘야 함.
-            access_jwt = jwt.encode(payload.model_dump(mode='json'), 
-                                key=jwt_config.secret, 
-                                algorithm=jwt_config.algorithm)
-        except JWTError as e:
-            logger.exception(f"jwt encoding error {e}")
-            raise TokenInvalidError(status_code=500, detail="error while creating token")
-        
-        # token = TokenResponse(access_token=access)
-        
-        return access_jwt
+            now = datetime.now(timezone.utc)
+            expires = now + timedelta(minutes=self.access_token_exp)
+            expires = int(expires.timestamp())
+            payload = TokenPayload(
+                user_id=user_id,
+                exp=expires,
+                iat=int(now.timestamp()),
+                token_type="access"
+            )
+            try:
+                # pydantic v2 에서는 mode='json' 으로 UUID 도 직렬화 됨.
+                # v1 에서는 따로 uuid 직렬화 처리를 해줘야 함.
+                access_jwt = jwt.encode(payload.model_dump(mode='json'), 
+                                    key=jwt_config.secret, 
+                                    algorithm=jwt_config.algorithm)
+            except JWTError as e:
+                logger.exception(f"jwt encoding error {e}")
+                raise TokenInvalidError(status_code=500, detail="error while creating token")
+            
+            return access_jwt
+        except TokenError:
+            raise
+        except Exception as e:
+            logger.exception(f"error create_access_token {e}")
+            raise InternalError(exception=e)
         
 
     def create_refresh_token(self, user_id:UUID) -> RefreshTokenResult: 
@@ -55,30 +59,36 @@ class TokenAdapter(TokenPort):
                 token: jwt문자열
                 expires_at: 타임스탬프 (int)
         """ 
-        now = datetime.now(timezone.utc)
-        expires = now + timedelta(days=self.refresh_token_exp)
-        expires = int(expires.timestamp())
-        payload = TokenPayload(
-            user_id=user_id,
-            exp=expires,
-            iat=int(now.timestamp()),
-            token_type="refresh"
-        )
         try:
-            refresh_jwt = jwt.encode(payload.model_dump(mode='json'), 
-                                key=jwt_config.secret, 
-                                algorithm=jwt_config.algorithm)
-        except JWTError as e:
-            logger.exception(f"jwt encoding error {e}")
-            raise TokenInvalidError(status_code=500, detail="error while creating token")
+            now = datetime.now(timezone.utc)
+            expires = now + timedelta(days=self.refresh_token_exp)
+            expires = int(expires.timestamp())
+            payload = TokenPayload(
+                user_id=user_id,
+                exp=expires,
+                iat=int(now.timestamp()),
+                token_type="refresh"
+            )
+            try:
+                refresh_jwt = jwt.encode(payload.model_dump(mode='json'), 
+                                    key=jwt_config.secret, 
+                                    algorithm=jwt_config.algorithm)
+            except JWTError as e:
+                logger.exception(f"jwt encoding error {e}")
+                raise TokenInvalidError(status_code=500, detail="error while creating token")
 
-        return RefreshTokenResult(token=refresh_jwt, expires_at=expires)
+            return RefreshTokenResult(token=refresh_jwt, expires_at=expires)
+        except TokenError:
+            raise
+        except Exception as e:
+            logger.exception(f"error create_refresh_token {e}")
+            raise InternalError(exception=e)
 
 
     def verify_access_token(self, token_str:str)->TokenPayload: 
         
-        now = int(datetime.now(timezone.utc).timestamp())
         try:
+            now = int(datetime.now(timezone.utc).timestamp())
             payload = jwt.decode(token_str,
                                  key=jwt_config.secret,
                                  algorithms=jwt_config.algorithm
@@ -96,12 +106,17 @@ class TokenAdapter(TokenPort):
         except JWTError as e:
             logger.exception(f"Token verification error {e}")
             raise TokenInvalidError(status_code=401, detail=f"invalid token")
+        except TokenError:
+            raise
+        except Exception as e:
+            logger.exception(f"error verify_access_token {e}")
+            raise InternalError(exception=e)
 
         
     def verify_refresh_token(self, token_str:str)->TokenPayload: 
-        now = int(datetime.now(timezone.utc).timestamp())
 
         try:
+            now = int(datetime.now(timezone.utc).timestamp())
             payload = jwt.decode(token_str,
                                  key=jwt_config.secret,
                                  algorithms=jwt_config.algorithm
@@ -119,6 +134,11 @@ class TokenAdapter(TokenPort):
         except JWTError as e:
             logger.exception(f"Token verification error {e}")
             raise TokenInvalidError(status_code=401, detail=f"invalid token")
+        except TokenError:
+            raise
+        except Exception as e:
+            logger.exception(f"error verify_refresh_token {e}")
+            raise InternalError(exception=e)
     
     def invalidate_refresh_token(self, jwt_str:str)->bool: 
         ### 토큰 삭제

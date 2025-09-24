@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 from typing import Optional
 from uuid import UUID
 
@@ -10,6 +9,7 @@ from infra.db.storage import repo
 from infra.security import hash_password, verify_password, decrypt_token, TokenInvalidError
 from config.logger import get_logger
 from config.settings import security
+from config.exceptions import DBError, InternalError, AdapterNotFoundError, AdapterValidationError, AdapterError
 
 
 logger = get_logger(__name__)
@@ -27,7 +27,7 @@ class AccountAdapter(AccountPort):
             # 기존 존재하는 유저인지 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if user:
-                raise HTTPException(status_code=400, detail="Email already exist")
+                raise AdapterValidationError(message=f"Email {email} already exist")
             
             # Hash password only for local accounts
             hashed_password = None
@@ -50,10 +50,13 @@ class AccountAdapter(AccountPort):
                 name=new_user.name,
                 provider=new_user.provider
             )
-        except HTTPException:
+        except DBError:
+            raise
+        except AdapterError:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Internal server error {e}")
+            logger.exception(f"Error creating account: {e}")
+            raise InternalError(exception=e)
         
     async def get_account(self, email: str) -> AccountResponse:
         """이메일로 유저정보 조회"""
@@ -61,7 +64,7 @@ class AccountAdapter(AccountPort):
             # Get user from database
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise AdapterNotFoundError(message=f"User {email} not found")
             
             return AccountResponse(
                 id=user.id,
@@ -70,24 +73,21 @@ class AccountAdapter(AccountPort):
                 provider=user.provider
             )
             
-        except HTTPException:
+        except DBError:
+            raise
+        except AdapterError:
             raise
         except Exception as e:
             logger.exception(f"Error getting account: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
+            raise InternalError(exception=e)
+        
     async def get_account_by_id(self, user_id: UUID) -> AccountResponse:
         """사용자 ID로 유저정보 조회"""
         try:
-            
-            # Get user from database by ID
             user = await repo.get_user_by_id(user_id=user_id, db=self.db)
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
-            
-
+                raise AdapterNotFoundError(message=f"User {user_id} not found")
             info = await repo.get_user_info(user.id, db=self.db)
-            
             return AccountResponse(
                 id=user.id,
                 email=user.email,
@@ -95,70 +95,70 @@ class AccountAdapter(AccountPort):
                 provider=user.provider,
                 info=info
             )
-            
-        except HTTPException:
+        except DBError:
             raise
         except ValueError as e:
-            logger.error(f"Invalid user ID format: {e}")
-            raise HTTPException(status_code=400, detail="Invalid user ID format")
+            logger.exception(f"Invalid user ID format: {e}")
+            raise AdapterValidationError(message="Invalid user ID format")
+        except AdapterError:
+            raise
         except Exception as e:
-            logger.exception(f"Error getting account by ID: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Error get_account_by_id: {e}")
+            raise InternalError(exception=e)
     
 
     async def get_user_info_by_id(self, user_id:UUID)->UserInfoData : 
-        return await repo.get_user_info(user_id=user_id,
-                                        db=self.db)
+        try:
+            return await repo.get_user_info(user_id=user_id,
+                                            db=self.db)
+        except DBError:
+            raise
+        except AdapterError:
+            raise
+        except Exception as e:
+            logger.exception(f"Error get_user_info_by_id: {e}")
+            raise InternalError(exception=e)
 
 
 
     async def login_account(self, email: str, pwd: str) -> AccountResponse:
         """
         이메일, 비밀번호를 사용한 일반 로그인
-        
         return: AccountResponse
         """
         try:
-            # 유저 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise HTTPException(status_code=401, detail="Invalid email or password")
-            
-            # 비밀번호 확인
+                raise AdapterValidationError(message="Invalid email or password")
             is_valid = await verify_password(pwd, user.hashed_pwd)
             if not is_valid:
-                raise HTTPException(status_code=401, detail="Invalid email or password")
-
+                raise AdapterValidationError(message="Invalid email or password")
             info = await repo.get_user_info(user_id=user.id, db=self.db)
-            
             return AccountResponse(
                 id=user.id,
                 email=user.email,
-                name=user.name, 
+                name=user.name,
                 provider=user.provider,
                 info=info
             )
-        
-        except HTTPException:
+        except DBError:
+            raise
+        except AdapterError:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
+            logger.exception(f"Error login_account: {e}")
+            raise InternalError(exception=e)
         
     async def provider_login(self, email: str, provider: str, name: Optional[str] = None) -> AccountResponse:
         """OAuth provider login
             구글 로그인 등 외부 프로바이더 로그인.
             유저 테이블에 존재하지 않을 시 (새 로그인 시), 유저 생성 후 유저 리턴
-             
             return: AccountResponse
         """
         try:
-            # 유저 테이블 조회
             user = await repo.get_user_by_email(email=email, db=self.db)
-            
             if user:
-                # 유저 있음. 유저 리턴
                 info = await repo.get_user_info(user.id, db=self.db)
-
                 return AccountResponse(
                     id=user.id,
                     email=user.email,
@@ -167,7 +167,6 @@ class AccountAdapter(AccountPort):
                     info=info
                 )
             else:
-                # 유저 없음. 새 유저 생성
                 new_user = User(
                     email=email,
                     name=name,
@@ -183,10 +182,13 @@ class AccountAdapter(AccountPort):
                     name=new_user.name,
                     provider=new_user.provider
                 )
-                
+        except DBError:
+            raise
+        except AdapterError:
+            raise
         except Exception as e:
             logger.exception(f"Error in provider login: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise InternalError(exception=e)
 
     async def update_account(self, user_id:UUID, pwd: str, name: str, update_info:UserInfoData) -> AccountResponse:
         """
@@ -197,20 +199,16 @@ class AccountAdapter(AccountPort):
             # db 에서 유저 확인
             user = await repo.get_user_by_id(user_id=user_id, db=self.db)
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise AdapterNotFoundError(message="User not found")
             
-
-           ## 유저 정보 업데이트
             if name is not None:
                 user.name = name
             if pwd is not None and user.provider == "local":
                 user.hashed_pwd = await hash_password(pwd)
-            
             await repo.save_user(user=user, db=self.db)
 
             # info 업데이트
             info = await repo.get_user_info(user.id, self.db)
-
             if info is None:
                 info = UserInfo(
                     user_id=user_id,
@@ -231,13 +229,13 @@ class AccountAdapter(AccountPort):
                 provider=user.provider,
                 info=updated_info
             )
-            
-
-        except HTTPException:
+        except DBError:
+            raise
+        except AdapterError:
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Error update login: {e}")
+            raise InternalError(exception=e)
         
 
     async def deactivate_account(self, email: str) -> bool:
@@ -246,7 +244,7 @@ class AccountAdapter(AccountPort):
             # Find user by email
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise AdapterNotFoundError(message="User not found")
             
             #TODO: delete token  cascade??
             
@@ -259,17 +257,18 @@ class AccountAdapter(AccountPort):
             
             return True
         
-        except HTTPException:
+        except DBError:
+            raise
+        except AdapterError:
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Error deactivate_account: {e}")
+            raise InternalError(exception=e)
     
     async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
         """db에 저장된 리프레시토큰과 클라이언트의 리프래시토큰 대조 검증"""
         try:
-            db_refresh = await repo.get_refresh_token(db=self.db,
-                                                user_id=user_id)
+            db_refresh = await repo.get_refresh_token(db=self.db, user_id=user_id)
             
             # db 에 기존 refresh 없음
             if db_refresh is None:
@@ -283,16 +282,16 @@ class AccountAdapter(AccountPort):
             
             # 토큰 미스매치
             return decrypted == refresh_token
-        
-            
-        except HTTPException:
+        except DBError:
             raise
         except TokenInvalidError as e:
             logger.exception(str(e))
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
+            raise
+        except AdapterError:
+            raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="Internal server error")
+            logger.exception(f"Error validate_token_with_db: {e}")
+            raise InternalError(exception=e)
             
         
     
