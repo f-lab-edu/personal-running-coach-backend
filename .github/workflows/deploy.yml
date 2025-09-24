@@ -35,7 +35,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            rm -rf ~/personal-running-coach/frontend/dist
+            rm -rf ~/personal-running-coach/frontend/dist/*
 
       # 프론트 빌드파일 업로드
       - name: Upload Frontend dist to server
