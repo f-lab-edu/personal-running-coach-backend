@@ -1,5 +1,5 @@
-from fastapi import HTTPException
 from typing import List, Tuple
+import asyncio
 from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from schemas.models import (ActivityData,
                             TrainResponse, 
                             TrainDetailResponse)
 from infra.db.storage import activity_repo as repo
+from config.exceptions import InternalError, DBError, AdapterError, AdapterNotFoundError, AdapterValidationError
 from config.logger import get_logger
 
 logger = get_logger(__file__)
@@ -35,24 +36,18 @@ class TrainingAdapter(TrainingPort):
             # 이미 db에 저장된 세션.
             if session is None:
                 return False
-            
-            await repo.add_train_session_stream(db=self.db,
-                                       session_id=session.id,
-                                       stream=stream)
-            
-            await repo.add_train_session_lap(db=self.db,
-                                             session_id=session.id,
-                                             laps=laps)
+            asyncio.gather(
+                await repo.add_train_session_stream(db=self.db,session_id=session.id,stream=stream),
+                await repo.add_train_session_lap(db=self.db,session_id=session.id,laps=laps)
+            )
             
             return True
             
-        except HTTPException as e:
+        except DBError:
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="internal server error")
-        
-        
+            logger.exception(f"error save_session {e}")
+            raise InternalError(exception=e)
         
         
     def update_session(self, user_id:UUID, 
@@ -80,37 +75,41 @@ class TrainingAdapter(TrainingPort):
                 laps=laps,
                 stream=stream
             )
-        except HTTPException:
+        except DBError:
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="internal server error")
-
+            logger.exception(f"error get_session_detail {e}")
+            raise InternalError(exception=e)
         
     async def get_sessions_by_date(self, user_id:UUID, start_date:int = None)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""
-        if start_date is not None:
-            start_date = datetime.fromtimestamp(start_date, tz=timezone.utc).replace(tzinfo=None)
-        else:
-            cur = datetime.now(timezone.utc).replace(tzinfo=None)
-            start_date = cur - timedelta(days=14)
-            
-        sessions = await repo.get_train_session_by_date(db=self.db,
-                                       user_id=user_id,
-                                       start_date=start_date)
-        return [
-            TrainResponse(
-                session_id=session.id,
-                train_date=session.train_date,
-                distance=session.distance,
-                avg_speed=session.avg_speed,
-                total_time=session.total_time,
-                activity_title=session.activity_title,
-                analysis_result=session.analysis_result
-            ) for session in sessions
-        ]
+        try:
+            if start_date is not None:
+                start_date = datetime.fromtimestamp(start_date, tz=timezone.utc).replace(tzinfo=None)
+            else:
+                cur = datetime.now(timezone.utc).replace(tzinfo=None)
+                start_date = cur - timedelta(days=14)
+                
+            sessions = await repo.get_train_session_by_date(db=self.db,
+                                        user_id=user_id,
+                                        start_date=start_date)
+            return [
+                TrainResponse(
+                    session_id=session.id,
+                    train_date=session.train_date,
+                    distance=session.distance,
+                    avg_speed=session.avg_speed,
+                    total_time=session.total_time,
+                    activity_title=session.activity_title,
+                    analysis_result=session.analysis_result
+                ) for session in sessions
+            ]
         
-        
+        except DBError:
+            raise
+        except Exception as e:
+            logger.exception(f"error get_sessions_by_date {e}")
+            raise InternalError(exception=e)
         
         
         
