@@ -90,7 +90,7 @@ class TrainingAdapter(TrainingPort):
     async def get_sessions_by_date(self, user_id:UUID, start_date:int = None)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""
         if start_date is not None:
-            start_date = datetime.fromtimestamp(start_date, tz=timezone.utc)
+            start_date = datetime.fromtimestamp(start_date, tz=timezone.utc).replace(tzinfo=None)
             
         sessions = await repo.get_train_session_by_date(db=self.db,
                                        user_id=user_id,
