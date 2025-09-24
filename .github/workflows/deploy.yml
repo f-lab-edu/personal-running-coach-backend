@@ -23,7 +23,7 @@ jobs:
         run: |
           cd frontend
           npm ci --legacy-peer-deps
-          npm run build --mode production
+          npm run build
 
       # 빌드 결과 dist/ 서버로 복사
       - name: Upload Frontend dist to server
