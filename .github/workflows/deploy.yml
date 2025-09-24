@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "frontend/dist/*"
-          target: "~/personal-running-coach/frontend/dist/"
+          target: "~/personal-running-coach/"
 
       # 백엔드 배포 (docker-compose)
       - name: Deploy backend
