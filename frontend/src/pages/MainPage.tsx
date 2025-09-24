@@ -17,7 +17,8 @@ const MainPage: React.FC<{ user: any, token: any, thirdList:string[] }> = ({ use
                         whiteSpace: 'pre-wrap', // 줄바꿈 허용
                         wordBreak: 'break-word' // 단어 단위로 줄바꿈 
                         }}>
-                        {JSON.stringify({ token, user, thirdList }, null, 2)}
+                        Connected: {thirdList}
+                        {/* {JSON.stringify({ token, user, thirdList }, null, 2)} */}
                     </pre>
                 </div>
             ) : (
