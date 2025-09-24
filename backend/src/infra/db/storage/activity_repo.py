@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, and_
@@ -8,9 +7,7 @@ from datetime import datetime
 
 from infra.db.orm.models import TrainSession, TrainSessionStream, TrainSessionLap
 from schemas.models import ActivityData, LapData, StreamData
-from config.logger import get_logger
-
-logger = get_logger(__name__)
+from config.exceptions import DBError
 
 # --- TrainSession ---
 async def add_train_session(db: AsyncSession,
@@ -36,16 +33,10 @@ async def add_train_session(db: AsyncSession,
         return session
     except IntegrityError as e:
         await db.rollback()
-        print(f"{session.activity_id} exist")
         return None
-        # raise HTTPException(status_code=409,
-        #                     detail="session already exist")
-    
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-    
+        raise DBError(f"[add_train_session] failed id={user_id}", e)
     
 async def get_train_session_by_date( db: AsyncSession, 
                                     user_id:UUID,
@@ -65,24 +56,24 @@ async def get_train_session_by_date( db: AsyncSession,
         
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_session_by_date] failed id={user_id}", e)  
 
 async def get_train_session_by_id(session_id: UUID, db: AsyncSession) -> TrainSession | None:
     try:
-        res = await db.execute(select(TrainSession).where(TrainSession.id == session_id))
+        res = await db.execute(
+            select(TrainSession).where(TrainSession.id == session_id)
+            )
         return res.scalar_one_or_none()
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_session_by_id] failed id={session_id}", e)  
 
 async def get_train_sessions_by_user(user_id: UUID, db: AsyncSession) -> list[TrainSession]:
     try:
         res = await db.execute(select(TrainSession).where(TrainSession.user_id == user_id))
         return res.scalars().all()
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_sessions_by_user] failed id={user_id}", e)  
+
 
 async def update_train_session(train_session: TrainSession, db: AsyncSession) -> TrainSession:
     try:
@@ -91,18 +82,17 @@ async def update_train_session(train_session: TrainSession, db: AsyncSession) ->
         await db.refresh(train_session)
         return train_session
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[update_train_session] failed activity_id={train_session.activity_id}", e)  
+
 
 async def delete_train_session(train_session: TrainSession, db: AsyncSession) -> None:
     try:
         await db.delete(train_session)
         await db.commit()
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[delete_train_session] failed activity_id={train_session.activity_id}", e)  
 
 # --- TrainSessionStream ---
 async def add_train_session_stream(db: AsyncSession, session_id:UUID, stream:StreamData) -> TrainSessionStream:
@@ -122,9 +112,8 @@ async def add_train_session_stream(db: AsyncSession, session_id:UUID, stream:Str
         await db.refresh(data)
         return data
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[add_train_session_stream] failed activity_id={session_id}", e)  
 
 async def get_train_session_stream(user_id:UUID, session_id: UUID, db: AsyncSession) -> TrainSessionStream :
     try:
@@ -136,14 +125,13 @@ async def get_train_session_stream(user_id:UUID, session_id: UUID, db: AsyncSess
             )
         valid = check.scalar_one_or_none()
         if not valid: # user id sessionid mismatch
-            raise HTTPException(status_code=400, detail="invalid session id")
+            raise DBError(f"invalid session id {session_id}", None)
 
 
         res = await db.execute(select(TrainSessionStream).where(TrainSessionStream.session_id == session_id))
         return res.scalar_one_or_none()
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_session_stream] failed session_id={session_id}", e)
 
 async def update_train_session_stream(stream: TrainSessionStream, db: AsyncSession) -> TrainSessionStream:
     try:
@@ -152,18 +140,16 @@ async def update_train_session_stream(stream: TrainSessionStream, db: AsyncSessi
         await db.refresh(stream)
         return stream
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[update_train_session_stream] failed session_id={stream.session_id}", e)
 
 async def delete_train_session_stream(stream: TrainSessionStream, db: AsyncSession) -> None:
     try:
         await db.delete(stream)
         await db.commit()
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[delete_train_session_stream] failed session_id={stream.session_id}", e)
 
 # --- TrainSessionLap ---
 async def add_train_session_lap(db: AsyncSession, session_id:UUID, laps: List[LapData]) -> List[TrainSessionLap]:
@@ -191,9 +177,8 @@ async def add_train_session_lap(db: AsyncSession, session_id:UUID, laps: List[La
 
 
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[add_train_session_lap] failed session_id={session_id}", e)
 
 async def get_train_session_laps(user_id:UUID, session_id: UUID, db: AsyncSession) -> list[TrainSessionLap]:
     try:
@@ -204,26 +189,22 @@ async def get_train_session_laps(user_id:UUID, session_id: UUID, db: AsyncSessio
             )
         valid = check.scalar_one_or_none()
         if not valid: # user id sessionid mismatch
-            raise HTTPException(status_code=400, detail="invalid session id")
+            raise DBError("invalid session id", None)
 
         res = await db.execute(
             select(TrainSessionLap)
             .where(TrainSessionLap.session_id == session_id)
             )
         return res.scalars().all()
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_session_laps] failed session_id={session_id}", e)
 
 async def get_train_session_lap_by_id(lap_id: UUID, db: AsyncSession) -> TrainSessionLap | None:
     try:
         res = await db.execute(select(TrainSessionLap).where(TrainSessionLap.id == lap_id))
         return res.scalar_one_or_none()
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[get_train_session_lap_by_id] failed lap_id={lap_id}", e)
 
 async def update_train_session_lap(lap: TrainSessionLap, db: AsyncSession) -> TrainSessionLap:
     try:
@@ -232,15 +213,13 @@ async def update_train_session_lap(lap: TrainSessionLap, db: AsyncSession) -> Tr
         await db.refresh(lap)
         return lap
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[update_train_session_lap] failed lap_id={lap.id}", e)
 
 async def delete_train_session_lap(lap: TrainSessionLap, db: AsyncSession) -> None:
     try:
         await db.delete(lap)
         await db.commit()
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(f"[delete_train_session_lap] failed lap_id={lap.id}", e)
