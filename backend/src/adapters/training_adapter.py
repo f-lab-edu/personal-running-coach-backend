@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from typing import List, Tuple
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ports.training_port import TrainingPort
@@ -91,6 +91,9 @@ class TrainingAdapter(TrainingPort):
         """기간 내의 훈련 세션 받기"""
         if start_date is not None:
             start_date = datetime.fromtimestamp(start_date, tz=timezone.utc).replace(tzinfo=None)
+        else:
+            cur = datetime.now(timezone.utc).replace(tzinfo=None)
+            start_date = cur - timedelta(days=14)
             
         sessions = await repo.get_train_session_by_date(db=self.db,
                                        user_id=user_id,

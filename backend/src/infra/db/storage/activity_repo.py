@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, and_
 from uuid import UUID
 from typing import List
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 from infra.db.orm.models import TrainSession, TrainSessionStream, TrainSessionLap
 from schemas.models import ActivityData, LapData, StreamData
@@ -52,11 +52,7 @@ async def get_train_session_by_date( db: AsyncSession,
                                     start_date:datetime = None
                                     ) -> List[TrainSession] | None:
     try:
-        # 디폴트 2주
-        if start_date is None:
-            cur = datetime.now(timezone.utc)
-            start_date = cur - timedelta(days=14)
-        
+
         result = await db.execute(
             select(TrainSession)
             .where(TrainSession.user_id == user_id, 
