@@ -3,12 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from adapters import AccountAdapter, TokenAdapter
 from schemas.models import AccountResponse, LoginResponse, TokenResponse
-from config.exceptions import (DBError, CustomError,
-                               AdapterError, 
-                               InternalError, 
-                               UsecaseError, 
-                               NotFoundError, 
-                               ValidationError)
+from config.exceptions import (DBError, CustomError, InternalError, NotFoundError, ValidationError)
 from infra.db.storage import repo
 from infra.security import encrypt_token, decrypt_token
 from config.settings import security
