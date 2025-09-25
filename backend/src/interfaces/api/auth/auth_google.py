@@ -47,7 +47,8 @@ async def login_with_google():
         url = f"{google.auth_endpoint}?{urllib.parse.urlencode(params)}"
         return RedirectResponse(url)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"login_with_google. {str(e)}")
@@ -63,7 +64,8 @@ async def google_callback(code:str = Body(..., embed=True),
         login_res = await google_handler.handle_login(auth_code=code)
         return login_res
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"google callback. {str(e)}")

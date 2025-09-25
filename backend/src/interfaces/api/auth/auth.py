@@ -43,7 +43,8 @@ async def login(request:LoginRequest,
         token_response = await auth_handler.login(request.email, request.pwd)
         return token_response
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"login. {str(e)}")
@@ -59,7 +60,8 @@ async def signup(request:SignupRequest,
     try:
         return await auth_handler.signup(request.email, request.pwd, request.name)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"signup. {str(e)}")
@@ -78,7 +80,8 @@ async def login_token(
         access_token = access_cred.credentials
         return await auth_handler.login_token(access=access_token)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"login_token. {str(e)}")
@@ -96,7 +99,8 @@ async def refresh(
         refresh_token = refresh_cred.credentials
         return await auth_handler.refresh_token(access=refresh_token)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"refresh. {str(e)}")

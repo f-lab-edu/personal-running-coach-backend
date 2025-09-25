@@ -37,7 +37,8 @@ async def connect_strava(valid: bool = Depends(validate_current_user)):
         return {"url":url}
     
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"connect_strava. {str(e)}")
@@ -62,7 +63,8 @@ async def strava_callback(code:str = Body(..., embed=True),
         return res
         
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"strava_callback. {str(e)}")

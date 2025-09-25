@@ -53,7 +53,8 @@ async def coach_advice(
         return await handler.generate_advices(payload=payload)
     # 사용자 데이터 기반 코치 조언 생성
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"coach_advice. {str(e)}")
@@ -68,7 +69,8 @@ async def generate(
         return await handler.generate_trainings_advices(payload=payload)
     # 사용자 데이터 기반 코치 조언 생성
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"generate. {str(e)}")
@@ -83,7 +85,8 @@ async def get_llm(
     try:
         return await handler.get_trainings_advices(payload=payload)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"get_llm. {str(e)}")

@@ -35,7 +35,8 @@ async def fetch_schedule(
     try:
         return await handler.fetch_new_schedules(payload=payload, start_date=date)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"fetch_new_schedules. {str(e)}")
@@ -51,7 +52,8 @@ async def fetch_schedule(
     try:
         return await handler.get_schedules(payload=payload, start_date=date)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"fetch_schedule. {str(e)}")
@@ -67,7 +69,8 @@ async def fetch_schedule_detail(
     try:
         return await handler.get_schedule_detail(payload=payload, session_id=session_id)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"fetch_schedule_detail. {str(e)}")
