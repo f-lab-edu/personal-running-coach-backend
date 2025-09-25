@@ -6,13 +6,9 @@ from ports.account_port import AccountPort
 from schemas.models import AccountResponse, UserInfoData
 from infra.db.orm.models import User, UserInfo
 from infra.db.storage import repo
-from infra.security import hash_password, verify_password, decrypt_token, TokenInvalidError
-from config.logger import get_logger
+from infra.security import hash_password, verify_password, decrypt_token
 from config.settings import security
-from config.exceptions import DBError, InternalError, AdapterNotFoundError, AdapterValidationError, AdapterError
-
-
-logger = get_logger(__name__)
+from config.exceptions import InternalError, NotFoundError, ValidationError, CustomError
 
 class AccountAdapter(AccountPort):
     def __init__(self,db:AsyncSession):
@@ -27,7 +23,7 @@ class AccountAdapter(AccountPort):
             # 기존 존재하는 유저인지 확인
             user = await repo.get_user_by_email(email=email, db=self.db)
             if user:
-                raise AdapterValidationError(message=f"Email {email} already exist")
+                raise ValidationError(detail=f"Email {email} already exist")
             
             # Hash password only for local accounts
             hashed_password = None
@@ -50,13 +46,10 @@ class AccountAdapter(AccountPort):
                 name=new_user.name,
                 provider=new_user.provider
             )
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error creating account: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error creating account", original_exception=e)
         
     async def get_account(self, email: str) -> AccountResponse:
         """이메일로 유저정보 조회"""
@@ -64,7 +57,7 @@ class AccountAdapter(AccountPort):
             # Get user from database
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise AdapterNotFoundError(message=f"User {email} not found")
+                raise NotFoundError(detail=f"User {email} not found")
             
             return AccountResponse(
                 id=user.id,
@@ -73,20 +66,17 @@ class AccountAdapter(AccountPort):
                 provider=user.provider
             )
             
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error getting account: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error getting account", original_exception=e)
         
     async def get_account_by_id(self, user_id: UUID) -> AccountResponse:
         """사용자 ID로 유저정보 조회"""
         try:
             user = await repo.get_user_by_id(user_id=user_id, db=self.db)
             if not user:
-                raise AdapterNotFoundError(message=f"User {user_id} not found")
+                raise NotFoundError(detail=f"User {user_id} not found")
             info = await repo.get_user_info(user.id, db=self.db)
             return AccountResponse(
                 id=user.id,
@@ -95,29 +85,22 @@ class AccountAdapter(AccountPort):
                 provider=user.provider,
                 info=info
             )
-        except DBError:
-            raise
         except ValueError as e:
-            logger.exception(f"Invalid user ID format: {e}")
-            raise AdapterValidationError(message="Invalid user ID format")
-        except AdapterError:
+            raise ValidationError(detail="Invalid user ID format", original_exception=e)
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error get_account_by_id: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error get_account_by_id", original_exception=e)
     
 
     async def get_user_info_by_id(self, user_id:UUID)->UserInfoData : 
         try:
             return await repo.get_user_info(user_id=user_id,
                                             db=self.db)
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error get_user_info_by_id: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error get_user_info_by_id", original_exception=e)
 
 
 
@@ -129,10 +112,10 @@ class AccountAdapter(AccountPort):
         try:
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise AdapterValidationError(message="Invalid email or password")
+                raise ValidationError(detail="Invalid email or password")
             is_valid = await verify_password(pwd, user.hashed_pwd)
             if not is_valid:
-                raise AdapterValidationError(message="Invalid email or password")
+                raise ValidationError(detail="Invalid email or password")
             info = await repo.get_user_info(user_id=user.id, db=self.db)
             return AccountResponse(
                 id=user.id,
@@ -141,13 +124,10 @@ class AccountAdapter(AccountPort):
                 provider=user.provider,
                 info=info
             )
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error login_account: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error login_account", original_exception=e)
         
     async def provider_login(self, email: str, provider: str, name: Optional[str] = None) -> AccountResponse:
         """OAuth provider login
@@ -182,13 +162,10 @@ class AccountAdapter(AccountPort):
                     name=new_user.name,
                     provider=new_user.provider
                 )
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error in provider login: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error in provider login", original_exception=e)
 
     async def update_account(self, user_id:UUID, pwd: str, name: str, update_info:UserInfoData) -> AccountResponse:
         """
@@ -199,7 +176,7 @@ class AccountAdapter(AccountPort):
             # db 에서 유저 확인
             user = await repo.get_user_by_id(user_id=user_id, db=self.db)
             if not user:
-                raise AdapterNotFoundError(message="User not found")
+                raise NotFoundError(detail="User not found")
             
             if name is not None:
                 user.name = name
@@ -229,13 +206,10 @@ class AccountAdapter(AccountPort):
                 provider=user.provider,
                 info=updated_info
             )
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error update login: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error update login", original_exception=e)
         
 
     async def deactivate_account(self, email: str) -> bool:
@@ -244,7 +218,7 @@ class AccountAdapter(AccountPort):
             # Find user by email
             user = await repo.get_user_by_email(email=email, db=self.db)
             if not user:
-                raise AdapterNotFoundError(message="User not found")
+                raise NotFoundError(detail="User not found")
             
             #TODO: delete token  cascade??
             
@@ -257,13 +231,10 @@ class AccountAdapter(AccountPort):
             
             return True
         
-        except DBError:
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error deactivate_account: {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error deactivate_account", original_exception=e)
     
     async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
         """db에 저장된 리프레시토큰과 클라이언트의 리프래시토큰 대조 검증"""
@@ -282,18 +253,11 @@ class AccountAdapter(AccountPort):
             
             # 토큰 미스매치
             return decrypted == refresh_token
-        except DBError:
-            raise
-        except TokenInvalidError as e:
-            logger.exception(str(e))
-            raise
-        except AdapterError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error validate_token_with_db: {e}")
-            raise InternalError(exception=e)
-            
-        
+            raise InternalError(context="Error validate_token_with_db", original_exception=e)
+
     
     
 

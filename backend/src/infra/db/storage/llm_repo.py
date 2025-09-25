@@ -19,7 +19,7 @@ async def save_llm_predict(db:AsyncSession,
         return merged
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[save_llm_predict] failed id={llm.user_id}", e)
+        raise DBError(context=f"[save_llm_predict] failed id={llm.user_id}", original_exception=e)
 
 # read
 async def get_llm_predict_by_user_id(db:AsyncSession,
@@ -33,7 +33,7 @@ async def get_llm_predict_by_user_id(db:AsyncSession,
 
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[get_llm_predict_by_user_id] failed id={user_id}", e)
+        raise DBError(context=f"[get_llm_predict_by_user_id] failed id={user_id}", original_exception=e)
 
 # delete 
 async def delete_llm_predict_by_user_id(db:AsyncSession,
@@ -44,4 +44,4 @@ async def delete_llm_predict_by_user_id(db:AsyncSession,
 
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[delete_llm_predict_by_user_id] failed id={llm.user_id}", e)
+        raise DBError(context=f"[delete_llm_predict_by_user_id] failed id={llm.user_id}", original_exception=e)

@@ -11,10 +11,8 @@ from config.settings import strava
 from infra.db.storage import third_party_token_repo as repo
 from infra.db.orm.models import ThirdPartyToken
 from schemas.models import LapData, StreamData, ActivityData
-from config.exceptions import InternalError, DBError, AdapterError
-from config.logger import get_logger
+from config.exceptions import InternalError, DBError, CustomError
 
-logger = get_logger(__file__)
 
 class StravaAdapter(TrainingDataPort):
     def __init__(self, db:AsyncSession):
@@ -34,9 +32,10 @@ class StravaAdapter(TrainingDataPort):
             
             response.raise_for_status()
             return response.json()
+        except (httpx.HTTPStatusError, httpx.RequestError) as e:
+            raise InternalError(context="Strava httpx call error", original_exception=e)
         except Exception as e:
-            logger.exception(f"error strava connect {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error strava connect", original_exception=e)
         
     
     async def disconnect(self, user_id: UUID) -> bool:
@@ -71,11 +70,10 @@ class StravaAdapter(TrainingDataPort):
             )
             
             return True
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error strava disconnect {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error strava disconnect", original_exception=e)
         
     
     async def get_token_from_db(self, user_id:UUID)->Optional[ThirdPartyToken]:
@@ -91,8 +89,8 @@ class StravaAdapter(TrainingDataPort):
         except DBError:
             raise
         except Exception as e:
-            logger.exception(f"error strava get_token_from_db {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error get_token_from_db", original_exception=e)
+        
     
     async def fetch_activities(self, access_token:str, after_date: int = None) -> List[ActivityData]:
         """훈련 활동 데이터 가져오기
@@ -126,10 +124,9 @@ class StravaAdapter(TrainingDataPort):
                 
                 return self._parse_activity_data(response.json())
         except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            raise AdapterError(status_code=e.response.status_code, message=f"Strava httpx call error", exception=e)
+            raise InternalError(context=f"Strava httpx call error", original_exception=e)
         except Exception as e:
-            logger.exception(f"error strava fetch_activities {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error fetch_activities", original_exception=e)
         
     def _parse_activity_data(self, res:list) -> List[ActivityData]:
         """액티비티 데이터 포맷 - list > dic """
@@ -172,10 +169,10 @@ class StravaAdapter(TrainingDataPort):
                 return self._parse_stream_data(response.json())
             
         except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            raise AdapterError(status_code=e.response.status_code, message=f"Strava httpx call error", exception=e)
+            raise InternalError(context=f"Strava httpx call error", original_exception=e)
         except Exception as e:
-            logger.exception(f"error strava fetch_activities {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error fetch_activity_stream", original_exception=e)
+        
             
         
     def _parse_stream_data(self, res:dict) -> StreamData:
@@ -215,10 +212,10 @@ class StravaAdapter(TrainingDataPort):
                 
                 return parsed
         except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            raise AdapterError(status_code=e.response.status_code, message=f"Strava httpx call error", exception=e)
+            raise InternalError(context=f"Strava httpx call error", original_exception=e)
         except Exception as e:
-            logger.exception(f"error strava fetch_activities {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error fetch_activity_lap", original_exception=e)
+        
     
     def _parse_lap_data(self, res)->List[LapData]:
         """랩데이터 포맷 - [ 각 랩별 dic format]
@@ -274,7 +271,7 @@ class StravaAdapter(TrainingDataPort):
             return response.json()
     
         except (httpx.HTTPStatusError, httpx.RequestError) as e:
-            raise AdapterError(status_code=e.response.status_code, message=f"Strava httpx call error", exception=e)
+            raise InternalError(context=f"Strava httpx call error", original_exception=e)
         except Exception as e:
-            logger.exception(f"error strava refresh_token {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error strava refresh_token", original_exception=e)
+        

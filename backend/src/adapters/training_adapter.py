@@ -11,10 +11,7 @@ from schemas.models import (ActivityData,
                             TrainResponse, 
                             TrainDetailResponse)
 from infra.db.storage import activity_repo as repo
-from config.exceptions import InternalError, DBError, AdapterError, AdapterNotFoundError, AdapterValidationError
-from config.logger import get_logger
-
-logger = get_logger(__file__)
+from config.exceptions import InternalError, CustomError
 
 class TrainingAdapter(TrainingPort):
     def __init__(self, db:AsyncSession):
@@ -43,11 +40,10 @@ class TrainingAdapter(TrainingPort):
             
             return True
             
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error save_session {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error save_session", original_exception=e)
         
         
     def update_session(self, user_id:UUID, 
@@ -65,8 +61,10 @@ class TrainingAdapter(TrainingPort):
     async def get_session_detail(self, user_id:UUID, session_id:UUID)->TrainDetailResponse:
         """훈련 세션 세부 정보 받기 (stream, Lap)"""
         try:
-            laps_orm = await repo.get_train_session_laps(user_id=user_id, session_id=session_id, db=self.db)
-            stream_orm = await repo.get_train_session_stream(user_id=user_id, session_id=session_id, db=self.db)
+            laps_orm, stream_orm = await asyncio.gather(
+                repo.get_train_session_laps(user_id=user_id, session_id=session_id, db=self.db),
+                repo.get_train_session_stream(user_id=user_id, session_id=session_id, db=self.db)
+            )
 
             laps = [LapData.model_validate(lap) for lap in laps_orm]
             stream = StreamData.model_validate(stream_orm) if stream_orm else None
@@ -75,11 +73,10 @@ class TrainingAdapter(TrainingPort):
                 laps=laps,
                 stream=stream
             )
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error get_session_detail {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error get_session_detail", original_exception=e)
         
     async def get_sessions_by_date(self, user_id:UUID, start_date:int = None)-> List[TrainResponse]:
         """기간 내의 훈련 세션 받기"""
@@ -105,11 +102,11 @@ class TrainingAdapter(TrainingPort):
                 ) for session in sessions
             ]
         
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error get_sessions_by_date {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error get_sessions_by_date", original_exception=e)
+
         
         
         

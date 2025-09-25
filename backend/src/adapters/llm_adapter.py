@@ -6,10 +6,7 @@ from openai import AsyncOpenAI, APIConnectionError, APIError, RateLimitError
 import json
 
 from schemas.models import UserInfoData, TrainResponse
-from config.logger import get_logger
-from config.exceptions import AdapterValidationError, AdapterNotFoundError, AdapterError, InternalError
-
-logger = get_logger(__file__)
+from config.exceptions import InternalError, CustomError
 
 class LLMAdapter(LLMPort):    
     def __init__(self, api_key:str):
@@ -103,21 +100,19 @@ class LLMAdapter(LLMPort):
                     args = json.loads(message.function_call.arguments)
                     plan = args.get("plan")
                     if not plan:
-                        raise AdapterValidationError("LLM response missing 'plan'")
+                        raise InternalError(context="LLM response missing 'plan'")
                     return args["plan"]
                 except (KeyError, json.JSONDecodeError) as e:
-                    raise AdapterValidationError("Invalid LLM function_call response", e)
+                    raise InternalError(context="Invalid LLM function_call response", original_exception=e)
 
             return []
 
         except (APIConnectionError, RateLimitError, APIError) as e:
-            logger.exception(msg=f"LLM Error, {e}")
-            raise AdapterError(message="OpenAI error", exception=e)
-        except AdapterError:
+            raise InternalError(context="LLM error", original_exception=e)
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error generate_training_plan : {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="Error generate_training_plan", original_exception=e)
 
         
 
@@ -143,13 +138,9 @@ class LLMAdapter(LLMPort):
 
             return response.choices[0].message.content
     
-
         except (APIConnectionError, RateLimitError, APIError) as e:
-            logger.exception(msg=f"LLM Error, {e}")
-            raise AdapterError(message="OpenAI error", exception=e)
-        except AdapterError:
+            raise InternalError(context="LLM error", original_exception=e)
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"Error generate_coach_advice : {e}")
-            raise InternalError(exception=e)
-
+            raise InternalError(context="Error generate_coach_advice", original_exception=e)

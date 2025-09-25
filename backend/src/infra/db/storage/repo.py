@@ -15,7 +15,7 @@ async def get_user_by_email(email: str,
         )
         return res.scalar_one_or_none()
     except Exception as e:
-        raise DBError(f"[get_user_by_email] failed {email}", e)
+        raise DBError(context=f"[get_user_by_email] failed {email}", original_exception=e)
 
 async def get_user_by_id(user_id: UUID,
                          db: AsyncSession) -> User | None:
@@ -25,7 +25,7 @@ async def get_user_by_id(user_id: UUID,
         )
         return res.scalar_one_or_none()
     except Exception as e:
-        raise DBError(f"[get_user_by_id] failed id={user_id}", e)
+        raise DBError(context=f"[get_user_by_id] failed id={user_id}", original_exception=e)
 
         
 async def save_user(user: User,
@@ -37,7 +37,7 @@ async def save_user(user: User,
         return user
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[save_user] failed id={user.id}", e)
+        raise DBError(context=f"[save_user] failed id={user.id}", original_exception=e)
 
 
 
@@ -48,7 +48,7 @@ async def delete_user(user: User,
         await db.commit()
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[delete_user] failed id={user.id}", e)
+        raise DBError(context=f"[delete_user] failed id={user.id}", original_exception=e)
 
 async def save_user_info(user_info:UserInfo,
                         db:AsyncSession)->UserInfo:
@@ -59,7 +59,7 @@ async def save_user_info(user_info:UserInfo,
         return user_info
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[save_user_info] failed id={user_info.user_id}", e)
+        raise DBError(context=f"[save_user_info] failed id={user_info.user_id}", original_exception=e)
 
     
 async def get_user_info(user_id:UUID,
@@ -75,7 +75,7 @@ async def get_user_info(user_id:UUID,
 
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[get_user_info] failed id={user_id}", e)
+        raise DBError(context=f"[get_user_info] failed id={user_id}", original_exception=e)
 
 async def get_refresh_token(user_id:UUID,
                             db:AsyncSession)-> str | None:
@@ -89,7 +89,7 @@ async def get_refresh_token(user_id:UUID,
         return token.refresh_token
     
     except Exception as e:
-        raise DBError(f"[get_refresh_token] failed id={user_id}", e)
+        raise DBError(context=f"[get_refresh_token] failed id={user_id}", original_exception=e)
 
 
 async def add_refresh_token(user_id:UUID, 
@@ -107,4 +107,4 @@ async def add_refresh_token(user_id:UUID,
         await db.refresh(token)
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[get_refresh_token] failed id={user_id}", e)    
+        raise DBError(context=f"[get_refresh_token] failed id={user_id}", original_exception=e)

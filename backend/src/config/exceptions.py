@@ -1,74 +1,34 @@
-class TokenError(Exception):
-    def __init__(self, status_code, detail):
-        self.status_code = status_code
-        self.detail = detail
-        
-    def __str__(self):
-        return f"{self.status_code}. {self.detail}"
-    
-class TokenExpiredError(TokenError):
-    pass
-        
-class TokenInvalidError(TokenError):
-    def __init__(self, status_code, detail, token_type=None):
-        super().__init__(status_code, detail)
-        self.token_type = token_type
-        
-    def __str__(self):
-        return f"[{self.token_type}] {self.status_code}. {self.detail}"
-    
+class CustomError(Exception):
+    status_code: int = 500
+    detail: str = "Internal Server Error"
+    context: str = ""
 
-class DBError(Exception):
-    """
-    DB 레이어에서 발생하는 모든 에러의 공통 커스텀 예외.
-    """
-    def __init__(self, message: str, exception: Exception = None):
-        self.status_code = 500
-        self.message = message
-        self.original_exception = exception
-        super().__init__(message)
-
-
-        
-class InternalError(Exception):
-    def __init__(self, message: str = "Internal Server Error", exception: Exception = None):
-        self.status_code = 500
-        self.message = message
-        self.original_exception = exception
-        super().__init__(message)
-
-
-class AdapterError(Exception):
-    """어댑터 계층의 모든 예외 기본 클래스"""
-    status_code = 500  # 기본값
-
-    def __init__(self, message: str, exception:Exception=None, status_code:int=None):
-        self.message = message
-        self.original_exception = exception
-        if status_code is not None:
+    def __init__(self, detail: str = None, status_code: int = None, 
+                 original_exception: Exception = None, context:str=None):
+        if detail:
+            self.detail = detail
+        if status_code:
             self.status_code = status_code
-        super().__init__(message)
+        self.original_exception = original_exception
+        self.context = context if context else detail
+        super().__init__(self.detail)
 
-class AdapterNotFoundError(AdapterError):
-    status_code = 404
-
-class AdapterValidationError(AdapterError):
+    
+class TokenExpiredError(CustomError):
+    status_code = 401
+        
+class TokenInvalidError(CustomError):
     status_code = 400
+    
 
+class DBError(CustomError):
+    pass
 
-class UsecaseError(Exception):
-    """유스케이스 계층의 모든 예외 기본 클래스"""
-    status_code = 500  # 기본값
+class InternalError(CustomError):
+    pass
 
-    def __init__(self, message: str, exception:Exception=None, status_code:int=None):
-        self.message = message
-        self.original_exception = exception
-        if status_code is not None:
-            self.status_code = status_code
-        super().__init__(message)
-
-class UsecaseNotFoundError(UsecaseError):
+class NotFoundError(CustomError):
     status_code = 404
 
-class UsecaseValidationError(UsecaseError):
+class ValidationError(CustomError):
     status_code = 400

@@ -9,10 +9,8 @@ from schemas.models import LLMResponse
 from ports.llm_data_port import LLMDataPort
 from infra.db.orm.models import LLM
 from infra.db.storage import llm_repo as repo
-from config.logger import get_logger
-from config.exceptions import AdapterNotFoundError, AdapterError, AdapterValidationError, InternalError, DBError
+from config.exceptions import InternalError, CustomError
 
-logger = get_logger(__file__)
 
 class LLMDataAdapter(LLMDataPort):
     def __init__(self, db:AsyncSession):
@@ -40,11 +38,10 @@ class LLMDataAdapter(LLMDataPort):
                 sessions=saved.workout,
                 advice=saved.coach_advice
             )
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error save_llm_result {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error save_llm_result", original_exception=e)
 
     async def get_llm_predict(self, user_id:UUID, )->Optional[LLMResponse] :
         try:
@@ -56,11 +53,10 @@ class LLMDataAdapter(LLMDataPort):
                     advice=saved.coach_advice
                 )
             return None
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error get_llm_predict {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error get_llm_predict", original_exception=e)
 
     
     async def is_llm_call_available(self, user_id:UUID, limiter_day:int=7) -> bool:
@@ -72,10 +68,8 @@ class LLMDataAdapter(LLMDataPort):
             
             # 정해진 기일 내 한번 리밋
             next_available = saved.executed_at + timedelta(days=limiter_day)
-            print(f"{next_available} < {datetime.now(timezone.utc)} ???")
             return datetime.now(timezone.utc).replace(tzinfo=None) >= next_available
-        except DBError:
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error is_llm_call_available {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error is_llm_call_available", original_exception=e)

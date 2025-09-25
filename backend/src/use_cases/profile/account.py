@@ -3,12 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ports.account_port import AccountPort
 from schemas.models import TokenPayload, UserInfoData, AccountResponse
-from config.logger import get_logger
-from config.exceptions import DBError, AdapterError, InternalError
-
-
-logger = get_logger(__file__)
-
+from config.exceptions import DBError, InternalError, CustomError
 
 
 class AccountHandler:
@@ -21,11 +16,10 @@ class AccountHandler:
         try:
             res = await self.account_adapter.get_account_by_id(user_id=payload.user_id)
             return res
-        except (DBError, AdapterError):
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error get_account_info {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error get_account_info", original_exception=e)
 
 
     async def update_info(self, payload:TokenPayload, 
@@ -38,8 +32,7 @@ class AccountHandler:
                                                             update_info=user_info
                                                             )
             return res
-        except (DBError, AdapterError):
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error update_info {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error update_info", original_exception=e)

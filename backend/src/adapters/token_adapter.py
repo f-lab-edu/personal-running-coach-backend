@@ -5,7 +5,7 @@ from uuid import UUID
 from ports.token_port import TokenPort
 from schemas.models import TokenPayload, RefreshTokenResult
 from config.logger import get_logger
-from config.exceptions import TokenExpiredError, TokenInvalidError, TokenError, InternalError
+from config.exceptions import TokenExpiredError, TokenInvalidError, CustomError, InternalError
 from config import constants as con
 from config.settings import jwt_config
 
@@ -41,15 +41,13 @@ class TokenAdapter(TokenPort):
                                     key=jwt_config.secret, 
                                     algorithm=jwt_config.algorithm)
             except JWTError as e:
-                logger.exception(f"jwt encoding error {e}")
-                raise TokenInvalidError(status_code=500, detail="error while creating token")
-            
+                raise InternalError(context="error while creating token")
             return access_jwt
-        except TokenError:
+
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error create_access_token {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error create_access_token ", original_exception=e)
         
 
     def create_refresh_token(self, user_id:UUID) -> RefreshTokenResult: 
@@ -74,15 +72,13 @@ class TokenAdapter(TokenPort):
                                     key=jwt_config.secret, 
                                     algorithm=jwt_config.algorithm)
             except JWTError as e:
-                logger.exception(f"jwt encoding error {e}")
-                raise TokenInvalidError(status_code=500, detail="error while creating token")
-
+                raise InternalError(context="error while creating token", original_exception=e)
             return RefreshTokenResult(token=refresh_jwt, expires_at=expires)
-        except TokenError:
+
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error create_refresh_token {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error create_refresh_token", exception=e)
 
 
     def verify_access_token(self, token_str:str)->TokenPayload: 
@@ -97,20 +93,18 @@ class TokenAdapter(TokenPort):
             
             ## token type check
             if token.token_type != "access":
-                raise TokenInvalidError(status_code=401, detail="Invalid token type")    
+                raise TokenInvalidError(detail="Invalid token type")    
             elif token.exp < now :
-                raise TokenExpiredError(status_code=401, detail="token expired")
+                raise TokenExpiredError(detail="token expired")
 
             return token
         
         except JWTError as e:
-            logger.exception(f"Token verification error {e}")
-            raise TokenInvalidError(status_code=401, detail=f"invalid token")
-        except TokenError:
+            raise TokenInvalidError(detail=f"invalid token")
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error verify_access_token {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error verify_access_token", exception=e)
 
         
     def verify_refresh_token(self, token_str:str)->TokenPayload: 
@@ -125,20 +119,18 @@ class TokenAdapter(TokenPort):
             
             ## token type check
             if token.token_type != "refresh":
-                raise TokenInvalidError(status_code=401, detail="Invalid token type")    
+                raise TokenInvalidError(detail="Invalid token type")    
             elif token.exp < now :
-                raise TokenExpiredError(status_code=401, detail="token expired")
+                raise TokenExpiredError(detail="token expired")
 
             return token
         
         except JWTError as e:
-            logger.exception(f"Token verification error {e}")
-            raise TokenInvalidError(status_code=401, detail=f"invalid token")
-        except TokenError:
+            raise TokenInvalidError(detail=f"invalid token")
+        except CustomError:
             raise
         except Exception as e:
-            logger.exception(f"error verify_refresh_token {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error verify_refresh_token", exception=e)
     
     def invalidate_refresh_token(self, jwt_str:str)->bool: 
         ### 토큰 삭제

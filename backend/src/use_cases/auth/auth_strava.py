@@ -1,12 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.exceptions import (DBError, TokenError,
-                               AdapterError, 
-                               InternalError, 
-                               UsecaseError, 
-                               UsecaseNotFoundError, 
-                               UsecaseValidationError)
-from config.logger import get_logger
+from config.exceptions import CustomError, InternalError, NotFoundError, ValidationError
 from config.settings import security
 from adapters import StravaAdapter
 from schemas.models import TokenPayload
@@ -17,8 +11,6 @@ from infra.db.storage.third_party_token_repo import (
     update_third_party_token
 )
 
-
-logger = get_logger(__file__)
 
 
 class StravaHandler:
@@ -51,7 +43,7 @@ class StravaHandler:
                                                 )
             
             if not payload:
-                raise UsecaseValidationError(message="User not authenticated")
+                raise ValidationError(detail="User not authenticated")
             
             # 기존 토큰이 있는지 확인
             existing_token = await get_third_party_token_by_user_id(
@@ -84,15 +76,10 @@ class StravaHandler:
 
             return {"status": "ok","msg":"Strava connected successfully"}
         
-        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
+        except CustomError:
             raise
-            # raise
-            # status = {"status": "fail",
-            #       "msg":f"str{e}"
-            #       }
         except Exception as e:
-            logger.exception(f"error connect {e}")
-            raise InternalError(exception=e)
+            raise InternalError(context="error strava connect", original_exception=e)
         
         
 
@@ -110,7 +97,7 @@ class StravaHandler:
             
             try: 
                 if not payload:
-                    raise UsecaseValidationError(message="User not authenticated")
+                    raise ValidationError(detail="User not authenticated")
             
                 # 기존 토큰 get
                 existing_token = await get_third_party_token_by_user_id(
@@ -119,7 +106,7 @@ class StravaHandler:
                     db=self.db
                 )
                 if not existing_token:
-                    raise UsecaseNotFoundError(message="Strava token not found")
+                    raise NotFoundError(detail="Strava token not found")
                 
                 # 토큰 검증
                 if not await self.strava_adapter.is_token_expired(expires_at=existing_token.expires_at):
@@ -157,9 +144,8 @@ class StravaHandler:
                 )
                 return strava_token.get('access_token')
             
-            except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
+            except CustomError:
                 raise
             except Exception as e:
-                logger.exception(f"error get_access_and_refresh_if_expired {e}")
-                raise InternalError(exception=e)
+                raise InternalError(context="error get_access_and_refresh_if_expired", original_exception=e)
     

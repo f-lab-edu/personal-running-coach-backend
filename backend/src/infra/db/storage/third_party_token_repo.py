@@ -36,10 +36,10 @@ async def create_third_party_token(
         
     except IntegrityError as e:
         await db.rollback()
-        raise DBError(f"Token creation failed: Integrity error id={user_id}", e)
+        raise DBError(context=f"Token creation failed: Integrity error id={user_id}", original_exception=e)
     except Exception as e:
         await db.rollback()
-        raise DBError(f"Token creation failed id={user_id}", e)
+        raise DBError(context=f"Token creation failed id={user_id}", original_exception=e)
 
 
 async def get_third_party_token_by_user_id(
@@ -58,7 +58,7 @@ async def get_third_party_token_by_user_id(
         return res.scalar_one_or_none()
         
     except Exception as e:
-        raise DBError(f"[get_third_party_token_by_user_id] failed id={user_id}", e)
+        raise DBError(context=f"[get_third_party_token_by_user_id] failed id={user_id}", original_exception=e)
 
 
 async def get_third_party_token_by_provider_user_id(
@@ -77,7 +77,7 @@ async def get_third_party_token_by_provider_user_id(
         return res.scalar_one_or_none()
         
     except Exception as e:
-        raise DBError(f"[get_third_party_token_by_provider_user_id] failed provider_id={provider_user_id}", e)
+        raise DBError(context=f"[get_third_party_token_by_provider_user_id] failed provider_id={provider_user_id}", original_exception=e)
 
 
 async def update_third_party_token(
@@ -108,7 +108,7 @@ async def update_third_party_token(
         
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[update_third_party_token] failed id={user_id}", e)
+        raise DBError(context=f"[update_third_party_token] failed id={user_id}", original_exception=e)
 
 
 async def delete_third_party_token(
@@ -135,7 +135,7 @@ async def delete_third_party_token(
             
     except Exception as e:
         await db.rollback()
-        raise DBError(f"[delete_third_party_token] failed id={user_id}", e)
+        raise DBError(context=f"[delete_third_party_token] failed id={user_id}", original_exception=e)
 
 
 async def get_all_tokens_by_provider(
@@ -152,7 +152,7 @@ async def get_all_tokens_by_provider(
         return res.scalars().all()
         
     except Exception as e:
-        raise DBError(f"[get_all_tokens_by_provider] failed ", e)
+        raise DBError(context=f"[get_all_tokens_by_provider] failed ", original_exception=e)
 
 
 async def get_all_user_tokens(
@@ -169,7 +169,7 @@ async def get_all_user_tokens(
         return res.scalars().all()
         
     except Exception as e:
-        raise DBError(f"[get_all_user_tokens] failed id={user_id}", e)
+        raise DBError(context=f"[get_all_user_tokens] failed id={user_id}", original_exception=e)
 
 
 async def is_third_party_connected(
@@ -183,4 +183,4 @@ async def is_third_party_connected(
         return token is not None
         
     except Exception as e:
-        raise DBError(f"[is_third_party_connected] failed id={user_id}", e)
+        raise DBError(context=f"[is_third_party_connected] failed id={user_id}", original_exception=e)
