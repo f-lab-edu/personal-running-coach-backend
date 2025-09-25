@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,11 +5,17 @@ import httpx
 
 from config.settings import google, security
 from config.logger import get_logger
+from config.exceptions import (DBError, TokenError,
+                               AdapterError, 
+                               InternalError, 
+                               UsecaseError, 
+                               UsecaseNotFoundError, 
+                               UsecaseValidationError)
 from schemas.models import TokenResponse, LoginResponse
 from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from infra.db.storage import repo
-from infra.security import encrypt_token, decrypt_token, TokenInvalidError
+from infra.security import encrypt_token, decrypt_token
 from infra.db.storage.third_party_token_repo import get_all_user_tokens
 
 logger = get_logger(__file__)
@@ -51,7 +56,7 @@ class GoogleHandler:
             )
         
         if response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+            raise InternalError(message="Failed to exchange code for token")
         
         return response.json()
     
@@ -77,7 +82,7 @@ class GoogleHandler:
             id_token_jwt = token_response.get("id_token")
             
             if not id_token_jwt:
-                raise HTTPException(status_code=400, detail="No ID token received")
+                raise UsecaseValidationError(message="No ID token received")
             
 
             
@@ -94,7 +99,7 @@ class GoogleHandler:
             name = id_info.get("name")
             
             if not email:
-                raise HTTPException(status_code=400, detail="Invalid google account")
+                raise UsecaseValidationError(message="Invalid google account")
             
             # 3. 로그인. 신규로그인시 유저 생성
             
@@ -149,12 +154,9 @@ class GoogleHandler:
                 connected=connected_li
             )
 
-        except HTTPException:
-            raise
-        except TokenInvalidError as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
+                raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="internal server error")
+            logger.exception(f"error google handle_login {e}")
+            raise InternalError(exception=e)
             

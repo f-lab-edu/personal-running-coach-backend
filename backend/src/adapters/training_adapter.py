@@ -36,9 +36,9 @@ class TrainingAdapter(TrainingPort):
             # 이미 db에 저장된 세션.
             if session is None:
                 return False
-            asyncio.gather(
-                await repo.add_train_session_stream(db=self.db,session_id=session.id,stream=stream),
-                await repo.add_train_session_lap(db=self.db,session_id=session.id,laps=laps)
+            await asyncio.gather(
+                repo.add_train_session_stream(db=self.db,session_id=session.id,stream=stream),
+                repo.add_train_session_lap(db=self.db,session_id=session.id,laps=laps)
             )
             
             return True

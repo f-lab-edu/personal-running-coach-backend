@@ -1,11 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 
+from config.exceptions import (DBError, TokenError,
+                               AdapterError, 
+                               InternalError, 
+                               UsecaseError, 
+                               UsecaseNotFoundError, 
+                               UsecaseValidationError)
 from config.logger import get_logger
 from config.settings import security
 from adapters import StravaAdapter
 from schemas.models import TokenPayload
-from infra.security import encrypt_token, decrypt_token, TokenInvalidError
+from infra.security import encrypt_token, decrypt_token
 from infra.db.storage.third_party_token_repo import (
     get_third_party_token_by_user_id,
     create_third_party_token,
@@ -46,8 +51,7 @@ class StravaHandler:
                                                 )
             
             if not payload:
-                raise HTTPException(status_code=400, detail="User not authenticated")
-            
+                raise UsecaseValidationError(message="User not authenticated")
             
             # 기존 토큰이 있는지 확인
             existing_token = await get_third_party_token_by_user_id(
@@ -77,29 +81,21 @@ class StravaHandler:
                     expires_at=strava_token.get("expires_at"),
                     db=self.db
                 )
-        
-        except HTTPException as e:
-            logger.exception(str(e))
-            # raise
-            status = {"status": "fail",
-                  "msg":f"str{e}"
-                  }
-        except TokenInvalidError as e:
-            logger.exception(str(e))
-            # raise HTTPException(status_code=e.status_code, detail=e.detail)
-            status = {"status": "fail",
-                  "msg":f"str{e}"
-                  }
-            
-        except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
 
-        status = {"status": "ok",
-                  "msg":"Strava connected successfully"
-                  }
+            return {"status": "ok","msg":"Strava connected successfully"}
         
-        return status
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
+            raise
+            # raise
+            # status = {"status": "fail",
+            #       "msg":f"str{e}"
+            #       }
+        except Exception as e:
+            logger.exception(f"error connect {e}")
+            raise InternalError(exception=e)
+        
+        
+
     
         
     async def get_access_and_refresh_if_expired(self, payload:TokenPayload)->str:
@@ -114,7 +110,7 @@ class StravaHandler:
             
             try: 
                 if not payload:
-                    raise HTTPException(status_code=400, detail="User not authenticated")
+                    raise UsecaseValidationError(message="User not authenticated")
             
                 # 기존 토큰 get
                 existing_token = await get_third_party_token_by_user_id(
@@ -123,7 +119,7 @@ class StravaHandler:
                     db=self.db
                 )
                 if not existing_token:
-                    raise HTTPException(status_code=404, detail="Strava token not found")
+                    raise UsecaseNotFoundError(message="Strava token not found")
                 
                 # 토큰 검증
                 if not await self.strava_adapter.is_token_expired(expires_at=existing_token.expires_at):
@@ -159,17 +155,11 @@ class StravaHandler:
                     expires_at=strava_token.get("expires_at"),
                     db=self.db
                 )
-
+                return strava_token.get('access_token')
             
-            except HTTPException as e:
-                logger.exception(str(e))
+            except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
                 raise
-            except TokenInvalidError as e:
-                logger.exception(str(e))
-                raise HTTPException(status_code=e.status_code, detail=e.detail)
-                
             except Exception as e:
-                logger.exception(str(e))
-                raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
-            
-            return strava_token.get('access_token')
+                logger.exception(f"error get_access_and_refresh_if_expired {e}")
+                raise InternalError(exception=e)
+    

@@ -1,10 +1,8 @@
 """
 training data 관련 유스케이스
 """
-from fastapi import HTTPException
 from typing import List
 from uuid import UUID
-import time
 
 from adapters.training_data_adapter import TrainingDataPort
 from adapters.training_adapter import TrainingPort
@@ -12,6 +10,12 @@ from config.logger import get_logger
 from schemas.models import TokenPayload, TrainResponse, LapData, StreamData, TrainDetailResponse
 from use_cases.auth.auth_strava import StravaHandler
 from domains.data_analyzer import DataAnalyzer
+from config.exceptions import (DBError, TokenError,
+                               AdapterError, 
+                               InternalError, 
+                               UsecaseError, 
+                               UsecaseNotFoundError, 
+                               UsecaseValidationError)
 
 logger = get_logger(__file__)
 
@@ -44,56 +48,45 @@ class TrainSessionHandler:
             access_token = await self._get_access_token(payload)
         
             if not access_token:
-                raise HTTPException(status_code=400, detail="token returned None.")
+                raise UsecaseValidationError(message="invalid token")
             
             
             # 액티비티 리스트 
-            # start = time.time()
             activity_list = await self.data_adapter.fetch_activities(access_token=access_token,
                                                           after_date=start_date)
-            # logger.info(f"fetch activity: {time.time() - start:.3f} sec")
 
             # 각 액티비티
             # schedules = []
             for activity in activity_list:
                 
-                # start = time.time()
                 lap_data = await self.data_adapter.fetch_activity_lap(access_token=access_token,
                                                          activity_id=activity.activity_id)
-                # logger.warning(f"fetch activity lap: {time.time() - start:.3f} sec")
-                # start = time.time()
+                
                 stream_data = await self.data_adapter.fetch_activity_stream(access_token=access_token,
                                                          activity_id=activity.activity_id)
-                # logger.warning(f"fetch activity stream: {time.time() - start:.3f} sec")
                 
                 
-                # start = time.time()
                 train_res = self.analyzer.analyze(activity=activity,
                                                             laps=lap_data,
                                                             stream=stream_data)
-                # logger.warning(f"analyze: {time.time() - start:.3f} sec")
                 activity.activity_title = train_res.get("title", "러닝")
                 activity.analysis_result = train_res.get("detail", "세부내용 없음")  
-                # schedules.append(train_res)
                 
                 ## db 저장
-                # start = time.time()
                 await self.db_adapter.save_session(user_id=payload.user_id,
                                              activity=activity,
                                              laps=lap_data,
                                              stream=stream_data
                                              )
-                # logger.warning(f"save session: {time.time() - start:.3f} sec")
             ## 사용자에게 리턴
-            # return schedules
             return True
                 
         
-        except HTTPException:
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="internal server error")
+            logger.exception(f"error fetch_new_schedules {e}")
+            raise InternalError(exception=e)
 
     
     async def get_schedules(self, payload:TokenPayload, start_date:int = None) -> List[TrainResponse]:
@@ -103,11 +96,11 @@ class TrainSessionHandler:
             return await self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
                                                 start_date=start_date)
 
-        except HTTPException:
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail="internal server error")
-    
+            logger.exception(f"error get_schedules {e}")
+            raise InternalError(exception=e)
 
     async def get_schedule_detail(self, payload:TokenPayload, session_id:UUID = None)->TrainDetailResponse:
         """db 에서 스케줄 세부정보 받기"""
@@ -116,12 +109,11 @@ class TrainSessionHandler:
             return await self.db_adapter.get_session_detail(user_id=payload.user_id,
                                                 session_id=session_id)
 
-        except HTTPException:
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail="internal server error")
-
+            logger.exception(f"error get_schedules {e}")
+            raise InternalError(exception=e)
         
     
     def upload_new_schedule(self, payload:TokenPayload, session:TrainResponse)->bool:

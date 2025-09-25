@@ -1,9 +1,14 @@
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from adapters import AccountAdapter, TokenAdapter
 from schemas.models import AccountResponse, LoginResponse, TokenResponse
-from config.exceptions import TokenExpiredError, TokenInvalidError
+from config.exceptions import (DBError, TokenError,
+                               AdapterError, 
+                               InternalError, 
+                               UsecaseError, 
+                               UsecaseNotFoundError, 
+                               UsecaseValidationError)
 from config.logger import get_logger
 from infra.db.storage import repo
 from infra.security import encrypt_token, decrypt_token
@@ -79,25 +84,21 @@ class AuthHandler():
                 connected=connected_li
             )
             
-        except HTTPException:
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
-
-        except TokenInvalidError as e:
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-
         except Exception as e:
-            logger.exception(str(e))
-            raise HTTPException(status_code=500, detail=f"Internal server error {str(e)}")
-
-        
+            logger.exception(f"error login {e}")
+            raise InternalError(exception=e)
     
     async def signup(self, email:str, pwd:str, name:str)->bool:
         """회원가입"""
         try:
             res = await self.account_adapter.create_account(email, pwd, name)
-        except Exception as e:
-            logger.exception(str(e))
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
+        except Exception as e:
+            logger.exception(f"error signup {e}")
+            raise InternalError(exception=e)
         
         return True if res else False
     
@@ -131,15 +132,12 @@ class AuthHandler():
                 ),
                 connected=connected_li
             ) 
-
-        except HTTPException:
+        
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
-        except (TokenInvalidError, TokenExpiredError) as e: # 액세스 토큰 만료
-            logger.exception(f"token expired: {e}")
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
         except Exception as e:
-            logger.exception(f"token login error: {e}")
-            raise HTTPException(status_code=500, detail=f"internal server error")
+            logger.exception(f"error login_token {e}")
+            raise InternalError(exception=e)
         
         
     async def refresh_token(self, refresh:str)->LoginResponse:
@@ -160,7 +158,7 @@ class AuthHandler():
                                         refresh_token=refresh)
             # 토큰 not valid
             if not valid: 
-                raise HTTPException(status_code=401, detail="refresh_token not valid")
+                raise UsecaseValidationError(message="refresh_token not valid")
 
             # 액세스토큰 재발급
             new_access = self.token_adapter.create_access_token(refresh_payload.user_id)
@@ -190,13 +188,8 @@ class AuthHandler():
             )
         
         
-        except HTTPException:
+        except (DBError, TokenError, AdapterError, UsecaseError, InternalError):
             raise
-            
-        # 잘못된 토큰, 토큰 만료
-        except (TokenInvalidError, TokenExpiredError) as e:
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-            
         except Exception as e:
-            logger.exception(f"token login error: {e}")
-            raise HTTPException(status_code=500, detail=f"internal server error")
+            logger.exception(f"error refresh_token {e}")
+            raise InternalError(exception=e)

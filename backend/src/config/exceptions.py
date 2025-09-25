@@ -54,3 +54,21 @@ class AdapterNotFoundError(AdapterError):
 
 class AdapterValidationError(AdapterError):
     status_code = 400
+
+
+class UsecaseError(Exception):
+    """유스케이스 계층의 모든 예외 기본 클래스"""
+    status_code = 500  # 기본값
+
+    def __init__(self, message: str, exception:Exception=None, status_code:int=None):
+        self.message = message
+        self.original_exception = exception
+        if status_code is not None:
+            self.status_code = status_code
+        super().__init__(message)
+
+class UsecaseNotFoundError(UsecaseError):
+    status_code = 404
+
+class UsecaseValidationError(UsecaseError):
+    status_code = 400
