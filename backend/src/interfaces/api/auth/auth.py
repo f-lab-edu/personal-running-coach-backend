@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -6,10 +6,13 @@ from infra.db.storage.session import get_session
 from interfaces.api.auth.auth_google import google_router
 from interfaces.api.auth.auth_strava import strava_router
 from schemas.models import LoginRequest, SignupRequest, LoginResponse
-
 from use_cases.auth.auth import AuthHandler
 from adapters import AccountAdapter, TokenAdapter
 from config import constants
+from config.exceptions import CustomError
+from config.logger import get_logger
+
+logger = get_logger(__file__)
 
 router = APIRouter(prefix="/auth", tags=['auth'])
 router.include_router(google_router, tags=None)
@@ -36,10 +39,15 @@ async def login(request:LoginRequest,
         parameter: Body(email, pwd)
         return: LoginResponse (token, user info)
     """
-    
-    token_response = await auth_handler.login(request.email, request.pwd)
-    return token_response
-
+    try:
+        token_response = await auth_handler.login(request.email, request.pwd)
+        return token_response
+    except CustomError as e:
+        logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"login. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.post("/signup")
 async def signup(request:SignupRequest,
@@ -48,8 +56,14 @@ async def signup(request:SignupRequest,
         parameter: Body(email, pwd, name)
         return: 회원가입 성공여부 (bool)
     """
-    return await auth_handler.signup(request.email, request.pwd, request.name)
-    
+    try:
+        return await auth_handler.signup(request.email, request.pwd, request.name)
+    except CustomError as e:
+        logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"signup. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
 
 @router.post("/token", response_model=LoginResponse)
@@ -60,9 +74,16 @@ async def login_token(
         header: access_token
         return: LoginResponse
     """
-    access_token = access_cred.credentials
-    return await auth_handler.login_token(access=access_token)
-
+    try:
+        access_token = access_cred.credentials
+        return await auth_handler.login_token(access=access_token)
+    except CustomError as e:
+        logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"login_token. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
 @router.post("/refresh", response_model=LoginResponse)
 async def refresh(
     refresh_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
@@ -71,7 +92,13 @@ async def refresh(
         header: refresh_token
         return: LoginResponse
     """
-    refresh_token = refresh_cred.credentials
-    return await auth_handler.refresh_token(access=refresh_token)
-    
+    try:
+        refresh_token = refresh_cred.credentials
+        return await auth_handler.refresh_token(access=refresh_token)
+    except CustomError as e:
+        logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"refresh. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
