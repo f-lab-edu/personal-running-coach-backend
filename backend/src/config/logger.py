@@ -4,13 +4,11 @@ import os
 
 BASE = Path(__file__).resolve().parent.parent.parent
 LOG_DIR = BASE / "logs"   # docker-compose volume과 연결한 경로
-print(LOG_DIR)
 os.makedirs(LOG_DIR, exist_ok=True)
-
+print(LOG_DIR)
 def get_logger(name: str = "app", filename: str = "server.log") -> logging.Logger:
     logger = logging.getLogger(name)
-    logger.setLevel(logging.WARNING)  # WARNING 이상만
-    
+    logger.setLevel(logging.WARNING)
     if not logger.handlers:  # 중복 방지
         log_path = os.path.join(LOG_DIR, filename)
         fh = logging.FileHandler(log_path, encoding="utf-8")
@@ -22,7 +20,7 @@ def get_logger(name: str = "app", filename: str = "server.log") -> logging.Logge
         fh.setFormatter(formatter)
         logger.addHandler(fh)
     
-    # root 로거로 전달 안 함 → sqlalchemy 등 다른 라이브러리 로그 차단
+    # print(f"{name}, {logger.handlers}")
     logger.propagate = False
 
     return logger

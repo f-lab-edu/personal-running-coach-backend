@@ -12,7 +12,7 @@ from config import constants
 from config.exceptions import CustomError
 from config.logger import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=['auth'])
 router.include_router(google_router, tags=None)

@@ -22,7 +22,7 @@ from config.settings import google
 from config.exceptions import CustomError
 from config.logger import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 google_router = APIRouter(prefix="/google", tags=['auth-google'])
 

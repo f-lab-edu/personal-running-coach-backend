@@ -11,7 +11,7 @@ from use_cases.auth.dependencies import get_current_user
 from use_cases.auth.auth_strava import StravaHandler
 from config.logger import get_logger
 from config.exceptions import CustomError
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/trainsession", tags=['train-session'])
 

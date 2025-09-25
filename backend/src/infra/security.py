@@ -7,9 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from config.settings import security
 from config.exceptions import TokenInvalidError, InternalError
-from config.logger import get_logger
 
-logger = get_logger(__file__)
 
 
 # bcrypt = 단방향 해시

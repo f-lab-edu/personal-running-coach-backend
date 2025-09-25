@@ -14,8 +14,7 @@ from schemas.models import TokenPayload
 
 strava_router = APIRouter(prefix="/strava", tags=['auth-strava'])
 token_adapter = TokenAdapter()
-logger = get_logger(__file__)
-
+logger = get_logger(__name__)
 
 def get_handler(db:AsyncSession=Depends(get_session))->StravaHandler:
     return StravaHandler(

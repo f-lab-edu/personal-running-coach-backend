@@ -9,7 +9,7 @@ from use_cases.profile.account import AccountHandler
 from use_cases.auth.dependencies import get_current_user, get_test_user
 from config.logger import get_logger
 from config.exceptions import CustomError
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/profile", tags=['profile'])
 
@@ -27,6 +27,7 @@ async def get_info(
     handler:AccountHandler=Depends(get_handler)
     ):
     try:
+        print(logger.handlers)
         return await handler.get_account_info(payload=payload)
     except CustomError as e:
         logger.exception(f"{e.context} {str(e.original_exception)}")

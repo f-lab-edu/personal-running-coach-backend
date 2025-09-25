@@ -10,7 +10,8 @@ from config.settings import llm
 from config.exceptions import CustomError
 from config.logger import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
+
 
 
 
@@ -36,7 +37,8 @@ async def llm_prediction(
     try:
         return await handler.generate_trainings(payload=payload)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"llm_prediction. {str(e)}")
