@@ -6,10 +6,10 @@ from uuid import UUID
 
 from adapters.training_data_adapter import TrainingDataPort
 from adapters.training_adapter import TrainingPort
-from schemas.models import TokenPayload, TrainResponse, LapData, StreamData, TrainDetailResponse
+from schemas.models import TokenPayload, TrainResponse, TrainRequest, LapData, StreamData, TrainDetailResponse
 from use_cases.auth.auth_strava import StravaHandler
 from domains.data_analyzer import DataAnalyzer
-from config.exceptions import (DBError, CustomError, InternalError, NotFoundError, ValidationError)
+from config.exceptions import (CustomError, InternalError, NotFoundError, ValidationError)
 
 
 class TrainSessionHandler:
@@ -104,8 +104,17 @@ class TrainSessionHandler:
             raise InternalError(context="error get_schedule_detail", original_exception=e)
 
     
-    def upload_new_schedule(self, payload:TokenPayload, session:TrainResponse)->bool:
+    async def upload_new_schedule(self, payload:TokenPayload, session:TrainRequest)->bool:
         """db에 사용자가 직접 입력한 훈련 저장 train_session 만"""
+        try:
+            return await self.db_adapter.upload_session(user_id=payload.user_id,
+                                                        session=session
+                                                        )
+        except CustomError:
+            raise
+        except Exception as e:
+            raise InternalError(context="error upload_new_schedule", original_exception=e)
+ 
         ...
         
     def update_schedule(self, payload: TokenPayload, 
