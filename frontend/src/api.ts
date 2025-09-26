@@ -78,7 +78,10 @@ export async function fetchSchedules(token: string, date?: number) {
     const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  if (!res.ok) throw new Error('Failed to fetch schedules');
+  if (!res.ok) {
+    // console.log(res);
+    throw new Error('Failed to fetch schedules')
+  };
   return await res.json();
 }
 
@@ -89,7 +92,8 @@ export async function fetchNewSchedules(token: string, date?: number) {
     const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  if (!res.ok) throw new Error('Failed to fetch new schedules');
+  if (res.status == 404) throw new Error("no connected party");
+  else if (!res.ok) throw new Error('Failed to fetch new schedules');
   return await res.json();
 }
 
