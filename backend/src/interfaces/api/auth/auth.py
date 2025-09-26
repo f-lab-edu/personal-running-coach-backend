@@ -97,7 +97,7 @@ async def refresh(
     """
     try:
         refresh_token = refresh_cred.credentials
-        return await auth_handler.refresh_token(access=refresh_token)
+        return await auth_handler.refresh_token(refresh=refresh_token)
     except CustomError as e:
         if e.original_exception:
             logger.exception(f"{e.context} {str(e.original_exception)}")
