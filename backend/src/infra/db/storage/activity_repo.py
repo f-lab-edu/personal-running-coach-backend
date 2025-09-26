@@ -1,13 +1,34 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, update
 from uuid import UUID
 from typing import List
 from datetime import datetime
 
-from infra.db.orm.models import TrainSession, TrainSessionStream, TrainSessionLap
+from infra.db.orm.models import TrainSession, TrainSessionStream, TrainSessionLap, Counter
 from schemas.models import ActivityData, LapData, StreamData
 from config.exceptions import DBError
+from config.constants import ACTIVITY_ID
+
+
+async def get_counter(db: AsyncSession, k:str) -> int:
+    try:
+        res = await db.execute(select(Counter).where(Counter.k == k))
+        return res.scalar_one()
+    except Exception as e:
+        raise DBError(context=f"[get_counter] failed k={k}", original_exception=e)
+
+
+async def _increment_counter(db: AsyncSession, k:str) -> int:
+    counter = await db.get(Counter, k)
+    if not counter:
+        counter = Counter(k=k, v=1)
+        db.add(counter)
+        return counter.v
+    counter.v += 1
+    db.add(counter)
+    return counter.v
+        
 
 # --- TrainSession ---
 async def add_train_session(db: AsyncSession,
@@ -15,6 +36,9 @@ async def add_train_session(db: AsyncSession,
                             activity:ActivityData,
                             ) -> TrainSession:
     try:
+        if not activity.activity_id is not None:
+            activity.activity_id = await _increment_counter(db, ACTIVITY_ID)
+
         session = TrainSession(
             user_id=user_id,
             provider=activity.provider,
@@ -28,7 +52,7 @@ async def add_train_session(db: AsyncSession,
         )
         
         db.add(session)
-        await db.commit()
+        await db.commit()  ## increment + add 한번에 커밋
         await db.refresh(session)
         return session
     except IntegrityError as e:

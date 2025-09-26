@@ -4,3 +4,6 @@ REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 
 PLATFORM = ['facebook', 'kakao', ]
+
+# counter key
+ACTIVITY_ID = "session_activity_id"
