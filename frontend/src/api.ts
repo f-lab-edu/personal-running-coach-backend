@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './config';
 // Fetch AI generated sessions and advice (GET /ai/get)
 export async function fetchAnalysis() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/ai/get`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -11,7 +11,7 @@ export async function fetchAnalysis() {
 
 // Generate new AI sessions and advice (POST /ai/generate)
 export async function generateAnalysis() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/ai/generate`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` }
@@ -23,9 +23,9 @@ export async function generateAnalysis() {
 
 // Fetch current user profile (GET /profile/me)
 export async function fetchProfile() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/profile/me`, {
-    method: 'PUT',
+    method: 'GET',
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch profile');
@@ -45,7 +45,7 @@ export async function updateProfile(data: {
     train_goal?: string;
   };
 }) {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/profile/update`, {
     method: 'PUT',
     headers: {
@@ -63,7 +63,7 @@ export async function updateProfile(data: {
 export async function fetchTrainDetail(session_id: string) {
   const url = `${API_BASE_URL}/trainsession/${session_id}`;
   const headers: Record<string, string> = {};
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch session detail');
@@ -103,6 +103,35 @@ export async function loginWithEmail(email: string, pwd: string) {
   return await res.json();
 }
 
+export async function loginWithToken() {
+  const accessToken = localStorage.getItem("access_token");
+  if (!accessToken) throw new Error('no token');
+
+  const res = await fetch(`${API_BASE_URL}/auth/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (res.ok) return await res.json();
+  
+  else { // refresh token
+    const accessToken = localStorage.getItem("access_token");
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (res.ok) return await res.json();
+    else throw new Error("no token login");
+  }
+
+
+}
+
 export async function loginWithGoogle() {
   // Get Google login URL from backend
   window.location.href = `${API_BASE_URL}/auth/google/login`;
@@ -119,7 +148,7 @@ export async function signup(email: string, pwd: string, name: string) {
 }
 
 export async function connectStrava() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
   const res = await fetch(`${API_BASE_URL}/auth/strava/connect`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchSchedules, fetchNewSchedules } from '../api';
 import { useNavigate } from 'react-router-dom';
 
-import type { TrainResponse, TrainingPageProps } from '../types';
+import type { TrainResponse } from '../types';
 
 // Simple calendar rendering (no external lib)
 function getMonthDays(year: number, month: number) {
@@ -14,7 +14,8 @@ function getMonthDays(year: number, month: number) {
 	return days;
 }
 
-const TrainingPage: React.FC<TrainingPageProps> = ({ token }) => {
+// const TrainingPage: React.FC<TrainingPageProps> = ({ token }) => {
+const TrainingPage: React.FC = () => {
 	const [schedules, setSchedules] = useState<TrainResponse[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
@@ -23,26 +24,28 @@ const TrainingPage: React.FC<TrainingPageProps> = ({ token }) => {
 		return new Date(now.getFullYear(), now.getMonth(), 1);
 	});
 
+	const accessToken = localStorage.getItem('access_token');
+
 	useEffect(() => {
-		if (!token?.access_token) return;
+		if (!accessToken) return;
 		setLoading(true);
-		fetchSchedules(token.access_token)
+		fetchSchedules(accessToken)
 			.then(data => {
 				console.log(data);
 				setSchedules(data);
 				})
 			.catch(e => setError(e.message))
 			.finally(() => setLoading(false));
-	}, [token]);
+	}, [accessToken]);
 
 	const handleRefresh = async () => {
-		if (!token?.access_token) return;
+		if (!accessToken) return;
 		setLoading(true);
 		setError('');
 		try {
-			const res = await fetchNewSchedules(token.access_token);
+			const res = await fetchNewSchedules(accessToken);
 			if (res) {
-				const newSchedules = await fetchSchedules(token.access_token);
+				const newSchedules = await fetchSchedules(accessToken);
 				setSchedules(newSchedules);
 			}
 		} catch (e: any) {

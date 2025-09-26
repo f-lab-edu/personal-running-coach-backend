@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate} from 'react-router-dom';
+import { loginWithToken } from './api.ts';
 
 // Placeholder pages
 import MainPage from './pages/MainPage.tsx';
@@ -46,16 +47,37 @@ const LeftNav = () => (
 
 const App: React.FC = () => {
     const [user, setUser] = useState<any>(null);
-    const [token, setToken] = useState<any>(null);
     const [thirdList, setThirdList] = useState<string[]>([]);
 
     const navigate = useNavigate();
 
+    useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+        loginWithToken()
+        .then(res => {
+            setUser(res.user);
+            setThirdList(res.connected);
+            if (res.token){
+                localStorage.setItem("access_token", res.token.access_token);
+                localStorage.setItem("refresh_token", res.token.refresh_token);
+            }
+        })
+        .catch(() => {
+            // 토큰이 만료됐으면 그냥 로그아웃 상태 유지
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+        });
+    }
+    }, []);
+
+
     const handleLogout = () => {
         setUser(null);
-        setToken(null);
         setThirdList([]);
-        // Optionally clear tokens from storage
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        navigate("/");
     };
 
     const handleLogin = () => {
@@ -70,20 +92,16 @@ const App: React.FC = () => {
                 <LeftNav />
                 <div style={{ flex: 1, padding: '30px' }}>
                     <Routes>
-                        <Route path="/" element={<MainPage user={user} token={token} thirdList={thirdList}/>} />
+                        <Route path="/" element={<MainPage user={user} thirdList={thirdList}/>} />
                         <Route path="/user" element={<UserPage />} />
                         <Route path="/auth/google/callback" element={<CallbackPage setUser={setUser} 
-                                                                                    setToken={setToken} 
                                                                                     setThirdList={setThirdList}/>} />
                         <Route path="/auth/strava/callback" element={<StravaCallback setThirdList={setThirdList}/>} />
                         <Route path="/login" element={<LoginPage setUser={setUser} 
-                                                                setToken={setToken}
                                                                 setThirdList={setThirdList}/>} />
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/connect" element={<ConnectPage thirdList={thirdList}/>} />
-                        <Route path="/training" element={<TrainingPage token={token}/>} />
-                        {/* <Route path="/connect" element={<ConnectPage user={user} thirdList={thirdList}/>} />
-                        <Route path="/training" element={<TrainingPage user={user} token={token}/>} /> */}
+                        <Route path="/training" element={<TrainingPage />} />
                         <Route path="/training/:session_id" element={<TrainingDetailPage />} />
                         <Route path="/analysis" element={<AnalysisPage />} />
                     </Routes>

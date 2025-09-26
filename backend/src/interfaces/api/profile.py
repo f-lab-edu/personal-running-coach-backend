@@ -21,7 +21,7 @@ def get_handler(db:AsyncSession=Depends(get_session))->AccountHandler:
         account_adapter=AccountAdapter(db=db)
     )
 
-@router.put("/me")
+@router.get("/me")
 async def get_info(
     payload: TokenPayload = Depends(get_current_user),
     handler:AccountHandler=Depends(get_handler)

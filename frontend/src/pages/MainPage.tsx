@@ -1,6 +1,7 @@
 import React from 'react';
 
-const MainPage: React.FC<{ user: any, token: any, thirdList:string[] }> = ({ user, token,thirdList }) => {
+const MainPage: React.FC<{ user: any, thirdList:string[] }> = ({ user, thirdList }) => {
+    const token = localStorage.getItem("access_token");
     return (
         <pre>
             <h2>Main</h2>
