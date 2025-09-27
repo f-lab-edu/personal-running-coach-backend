@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 from interfaces.api import routers
 from config import settings
 from infra.db.storage.session import create_db_and_tables, close_db
+from infra.db.redis.redis_client import init_redis
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     ## db 시작
     await create_db_and_tables()
+    await init_redis()
     yield
     ## db 종료
     await close_db()
