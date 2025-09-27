@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
@@ -6,10 +6,12 @@ from uuid import UUID
 from adapters import StravaAdapter, TrainingAdapter
 from infra.db.storage.session import get_session
 from use_cases.train_session.handle_train_session import TrainSessionHandler
-from schemas.models import TokenPayload
+from schemas.models import TokenPayload, TrainRequest
 from use_cases.auth.dependencies import get_current_user
 from use_cases.auth.auth_strava import StravaHandler
-
+from config.logger import get_logger
+from config.exceptions import CustomError
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/trainsession", tags=['train-session'])
 
@@ -30,8 +32,16 @@ async def fetch_schedule(
     date:Optional[int] = None,
     payload: TokenPayload = Depends(get_current_user),
     handler:TrainSessionHandler=Depends(get_handler)):
+    try:
+        return await handler.fetch_new_schedules(payload=payload, start_date=date)
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"fetch_new_schedules. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
-    return await handler.fetch_new_schedules(payload=payload, start_date=date)
 
 # 스케줄 불러오기
 @router.get("/fetch-schedules")
@@ -39,15 +49,46 @@ async def fetch_schedule(
     date:Optional[int] = None,
     payload: TokenPayload = Depends(get_current_user),
     handler:TrainSessionHandler=Depends(get_handler)):
+    try:
+        return await handler.get_schedules(payload=payload, start_date=date)
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"fetch_schedule. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
-    return await handler.get_schedules(payload=payload, start_date=date)
-
 
 # 스케줄 세부 정보
 @router.get("/{session_id}")
-async def fetch_schedule(
+async def fetch_schedule_detail(
     session_id:UUID,
     payload: TokenPayload = Depends(get_current_user),
     handler:TrainSessionHandler=Depends(get_handler)):
+    try:
+        return await handler.get_schedule_detail(payload=payload, session_id=session_id)
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"fetch_schedule_detail. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
-    return await handler.get_schedule_detail(payload=payload, session_id=session_id)
+
+@router.post("/upload")
+async def upload_new_schedule(
+    data:Optional[TrainRequest] = None,
+    payload: TokenPayload = Depends(get_current_user),
+    handler:TrainSessionHandler=Depends(get_handler)):
+    try:
+        return await handler.upload_new_schedule(payload=payload, session=data)
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"upload session. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    

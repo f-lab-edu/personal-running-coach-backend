@@ -6,9 +6,8 @@ from typing import List
 from datetime import datetime, timedelta, timezone
 
 from infra.db.orm.models import LLM
-from config.logger import get_logger
 
-logger = get_logger(__name__)
+from config.exceptions import DBError
 
 # add / update
 async def save_llm_predict(db:AsyncSession,
@@ -19,9 +18,8 @@ async def save_llm_predict(db:AsyncSession,
         # await db.refresh(llm)
         return merged
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise
+        raise DBError(context=f"[save_llm_predict] failed id={llm.user_id}", original_exception=e)
 
 # read
 async def get_llm_predict_by_user_id(db:AsyncSession,
@@ -34,9 +32,8 @@ async def get_llm_predict_by_user_id(db:AsyncSession,
 
 
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise
+        raise DBError(context=f"[get_llm_predict_by_user_id] failed id={user_id}", original_exception=e)
 
 # delete 
 async def delete_llm_predict_by_user_id(db:AsyncSession,
@@ -46,6 +43,5 @@ async def delete_llm_predict_by_user_id(db:AsyncSession,
         await db.commit()
 
     except Exception as e:
-        logger.exception(str(e))
         await db.rollback()
-        raise
+        raise DBError(context=f"[delete_llm_predict_by_user_id] failed id={llm.user_id}", original_exception=e)

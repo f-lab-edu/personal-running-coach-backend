@@ -47,11 +47,11 @@ class StreamData(BaseModel):
         from_attributes = True  # ORM 객체 지원
 
 class ActivityData(BaseModel):
-    activity_id: int
+    activity_id: Optional[int] = None
     provider: Optional[str] = None
     distance: Optional[float] = None
     elapsed_time: int
-    sport_type: str
+    sport_type: Optional[str] = None
     start_date: datetime
     average_speed:Optional[float] = None
     max_speed:Optional[float] = None
@@ -99,7 +99,15 @@ class AccountRequest(BaseModel):
     pwd:Optional[str] = None
     provider:Optional[str] = None
     info:Optional[UserInfoData] = None
-    
+
+# 세션 추가
+class TrainRequest(BaseModel):
+    train_date:datetime
+    distance:Optional[float] = None
+    avg_speed: Optional[float] = None
+    total_time: Optional[float] = None
+    activity_title:Optional[str] = None
+    analysis_result: Optional[str] = None
 
 
 

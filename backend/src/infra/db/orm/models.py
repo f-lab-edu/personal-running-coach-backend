@@ -51,7 +51,9 @@ class ThirdPartyToken(SQLModel, table=True):
 
     user: Optional["User"] = Relationship(back_populates="third_party_tokens")
     
-    
+class Counter(SQLModel, table=True):
+    k: str = Field(primary_key=True)
+    v: int = Field(default=0)
 
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)

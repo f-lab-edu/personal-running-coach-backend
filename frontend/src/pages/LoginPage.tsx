@@ -4,9 +4,8 @@ import { loginWithEmail, loginWithGoogle } from '../api';
 
 const LoginPage: React.FC<
 { setUser: (user: any) => void, 
-  setToken: (token: any) => void 
   setThirdList: React.Dispatch<React.SetStateAction<string[]>>;
-}> = ({ setUser, setToken, setThirdList }) => {
+}> = ({ setUser, setThirdList }) => {
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
   const [error, setError] = useState('');
@@ -17,10 +16,9 @@ const LoginPage: React.FC<
     try {
       const res = await loginWithEmail(email, pwd);
       setUser(res.user);
-      setToken(res.token);
       setThirdList(res.connected);
-      sessionStorage.setItem('access_token', res.token.access_token);
-      sessionStorage.setItem('refresh_token', res.token.refresh_token);
+      localStorage.setItem('access_token', res.token.access_token);
+      localStorage.setItem('refresh_token', res.token.refresh_token);
       navigate('/');
     } catch (err: any) {
       setError('Login failed');

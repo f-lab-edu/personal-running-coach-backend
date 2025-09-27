@@ -18,7 +18,7 @@ export default function StravaCallback(
         return;
       }
 
-      const token = sessionStorage.getItem("access_token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
         alert("No access token found. Please login first.");
         navigate("/connect");

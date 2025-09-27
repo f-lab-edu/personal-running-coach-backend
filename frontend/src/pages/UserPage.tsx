@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { fetchProfile, updateProfile } from '../api';
 
-// import type { UserInfoData, Profile } from '../types';
-import type { Profile } from '../types';
+import type { UserInfoData, Profile } from '../types';
+// import type { Profile } from '../types';
 
 const UserPage: React.FC = () => {
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -11,6 +11,9 @@ const UserPage: React.FC = () => {
 	const [form, setForm] = useState<Partial<Profile & { pwd?: string }>>({});
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	const infoKeys: (keyof UserInfoData)[] = ['height', 'weight', 'age', 'sex', 'train_goal'];
+
 
 	useEffect(() => {
 		fetchProfile()
@@ -26,9 +29,19 @@ const UserPage: React.FC = () => {
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 		const { name, value } = e.target;
-		if (name in (profile?.info || {})) {
-			setForm(f => ({ ...f, info: { ...f.info, [name]: value } }));
+		console.log(`${name}, ${value}`);
+		console.log(profile);
+		if (infoKeys.includes(name as keyof UserInfoData)) {
+			// 'height' 같은 키는 이 블록으로
+			setForm(f => ({
+				...f,
+				info: {
+					...(f.info || {}), // form.info가 혹시라도 null이 되는 경우를 방지
+					[name]: value
+				}
+			}));
 		} else {
+			// 'name' 같은 키는 이 블록으로 들어옵니다.
 			setForm(f => ({ ...f, [name]: value }));
 		}
 	};
