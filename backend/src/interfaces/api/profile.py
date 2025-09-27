@@ -27,10 +27,10 @@ async def get_info(
     handler:AccountHandler=Depends(get_handler)
     ):
     try:
-        print(logger.handlers)
         return await handler.get_account_info(payload=payload)
     except CustomError as e:
-        logger.exception(f"{e.context} {str(e.original_exception)}")
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.exception(f"get_info. {str(e)}")

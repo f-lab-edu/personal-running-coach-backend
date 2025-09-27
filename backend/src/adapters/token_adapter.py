@@ -100,11 +100,11 @@ class TokenAdapter(TokenPort):
             return token
         
         except JWTError as e:
-            raise TokenInvalidError(detail=f"invalid token")
+            raise TokenInvalidError(detail=f"invalid token", original_exception=e)
         except CustomError:
             raise
         except Exception as e:
-            raise InternalError(context="error verify_access_token", exception=e)
+            raise InternalError(context="error verify_access_token", original_exception=e)
 
         
     def verify_refresh_token(self, token_str:str)->TokenPayload: 
@@ -130,7 +130,7 @@ class TokenAdapter(TokenPort):
         except CustomError:
             raise
         except Exception as e:
-            raise InternalError(context="error verify_refresh_token", exception=e)
+            raise InternalError(context="error verify_refresh_token", original_exception=e)
     
     def invalidate_refresh_token(self, jwt_str:str)->bool: 
         ### 토큰 삭제

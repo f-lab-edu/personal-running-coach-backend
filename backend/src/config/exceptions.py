@@ -18,7 +18,7 @@ class TokenExpiredError(CustomError):
     status_code = 401
         
 class TokenInvalidError(CustomError):
-    status_code = 400
+    status_code = 401
     
 
 class DBError(CustomError):
