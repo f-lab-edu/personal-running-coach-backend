@@ -97,6 +97,30 @@ export async function fetchNewSchedules(token: string, date?: number) {
   return await res.json();
 }
 
+// Upload new train session (POST /trainsession/upload)
+export async function postNewSchedule(data: {
+  train_date: string; // datetime string (ISO or 'YYYY-MM-DD HH:mm:ss.ssssss')
+  distance?: number;
+  avg_speed?: number;
+  total_time?: number;
+  activity_title?: string;
+  analysis_result?: string;
+}) {
+  const token = localStorage.getItem('access_token');
+  // Ensure train_date is a valid datetime string
+  // If needed, convert JS Date to ISO string: new Date().toISOString()
+  const res = await fetch(`${API_BASE_URL}/trainsession/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Failed to upload new schedule');
+  return await res.json();
+}
+
 export async function loginWithEmail(email: string, pwd: string) {
   const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',

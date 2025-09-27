@@ -13,6 +13,7 @@ import StravaCallback from './pages/StravaCallbackPage.tsx';
 import TrainingDetailPage from './pages/TrainingDetailPage';
 import UserPage from './pages/UserPage';
 import AnalysisPage from './pages/AnalysisPage';
+import TrainingAddPage from './pages/TrainingAddPage';
 
 // Top bar component
 const TopBar = ({ user, onLogout, onLogin }: { user: any, onLogout: () => void , onLogin: ()=> void}) => (
@@ -102,6 +103,7 @@ const App: React.FC = () => {
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/connect" element={<ConnectPage thirdList={thirdList}/>} />
                         <Route path="/training" element={<TrainingPage />} />
+                        <Route path="/training/add" element={<TrainingAddPage user={user} />} />
                         <Route path="/training/:session_id" element={<TrainingDetailPage />} />
                         <Route path="/analysis" element={<AnalysisPage />} />
                     </Routes>
