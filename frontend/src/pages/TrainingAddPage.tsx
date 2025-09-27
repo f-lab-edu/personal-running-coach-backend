@@ -42,7 +42,8 @@ const TrainingAddPage: React.FC<TrainingAddPageProps> = ({ user }) => {
       const m = form.minute ? parseInt(form.minute) : 0;
       const s = form.second ? parseInt(form.second) : 0;
       const totalSeconds = h * 3600 + m * 60 + s;
-      const distanceNum = form.distance ? parseInt(form.distance) : undefined;
+      // const distanceNum = form.distance ? parseInt(form.distance) : undefined;
+      const distanceNum = parseInt(form.distance);
       let avgSpeed: number | undefined = undefined;
       let paceStr: string | undefined = undefined;
       if (distanceNum && totalSeconds && totalSeconds > 0) {
@@ -59,7 +60,7 @@ const TrainingAddPage: React.FC<TrainingAddPageProps> = ({ user }) => {
         provider: form.provider,
         train_date: form.train_date,
         avg_speed: avgSpeed,
-        distance: distanceNum,
+        distance: distanceNum * 1000,
         total_time: totalSeconds,
         activity_title: form.activity_title,
         analysis_result: form.detail,
