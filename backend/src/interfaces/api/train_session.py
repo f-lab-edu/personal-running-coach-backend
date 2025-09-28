@@ -7,8 +7,8 @@ from adapters import StravaAdapter, TrainingAdapter, RedisAdapter
 from infra.db.storage.session import get_session
 from infra.db.redis.redis_client import get_redis, Redis
 from use_cases.train_session.handle_train_session import TrainSessionHandler
-from schemas.models import TokenPayload, TrainRequest
-from use_cases.auth.dependencies import get_current_user
+from schemas.models import TokenPayload, TrainRequest, TrainSessionResponse
+from use_cases.auth.dependencies import get_current_user, get_etag
 from use_cases.auth.auth_strava import StravaHandler
 from config.logger import get_logger
 from config.exceptions import CustomError
@@ -49,13 +49,15 @@ async def fetch_schedule(
     
 
 # 스케줄 불러오기
-@router.get("/fetch-schedules")
+@router.get("/fetch-schedules", response_model=TrainSessionResponse)
 async def fetch_schedule(
     date:Optional[int] = None,
     payload: TokenPayload = Depends(get_current_user),
-    handler:TrainSessionHandler=Depends(get_handler)):
+    etag:str = Depends(get_etag),
+    handler:TrainSessionHandler=Depends(get_handler),
+    ):
     try:
-        return await handler.get_schedules(payload=payload, start_date=date)
+        return await handler.get_schedules(payload=payload, etag=etag, start_date=date)
     except CustomError as e:
         if e.original_exception:
             logger.exception(f"{e.context} {str(e.original_exception)}")

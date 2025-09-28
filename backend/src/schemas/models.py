@@ -139,6 +139,10 @@ class TrainResponse(BaseModel):
     activity_title:Optional[str] = None
     analysis_result: Optional[str] = None
 
+class TrainSessionResponse(BaseModel):
+    etag:Optional[str] = None
+    data:List[TrainResponse]
+
 class TrainDetailResponse(BaseModel):
     laps:Optional[List[LapData]] = None
     stream : Optional[StreamData] = None

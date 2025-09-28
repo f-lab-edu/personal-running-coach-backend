@@ -141,11 +141,12 @@ class AuthHandler():
         try:
             # 액세스 토큰 검증
             refresh_payload = self.token_adapter.verify_refresh_token(refresh)
-
+            print(refresh_payload)
             # 리프레시 토큰 db 대조
             valid = await self.account_adapter.validate_token_with_db(
                                         user_id=refresh_payload.user_id,
                                         refresh_token=refresh)
+            print(valid)
             # 토큰 not valid
             if not valid: 
                 raise ValidationError(detail="refresh_token not valid")
