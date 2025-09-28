@@ -3,12 +3,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
-
 from infra.db.orm.models import ThirdPartyToken
-from config.logger import get_logger
-
-logger = get_logger(__name__)
+from config.exceptions import DBError
 
 
 ## third party token functions
@@ -36,17 +32,14 @@ async def create_third_party_token(
         await db.commit()
         await db.refresh(token)
         
-        logger.info(f"{provider} token created for user {user_id}")
         return token
         
     except IntegrityError as e:
         await db.rollback()
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"Token creation failed: Integrity error id={user_id}", original_exception=e)
     except Exception as e:
         await db.rollback()
-        logger.exception(str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        raise DBError(context=f"Token creation failed id={user_id}", original_exception=e)
 
 
 async def get_third_party_token_by_user_id(
@@ -65,8 +58,7 @@ async def get_third_party_token_by_user_id(
         return res.scalar_one_or_none()
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[get_third_party_token_by_user_id] failed id={user_id}", original_exception=e)
 
 
 async def get_third_party_token_by_provider_user_id(
@@ -85,8 +77,7 @@ async def get_third_party_token_by_provider_user_id(
         return res.scalar_one_or_none()
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[get_third_party_token_by_provider_user_id] failed provider_id={provider_user_id}", original_exception=e)
 
 
 async def update_third_party_token(
@@ -117,8 +108,7 @@ async def update_third_party_token(
         
     except Exception as e:
         await db.rollback()
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[update_third_party_token] failed id={user_id}", original_exception=e)
 
 
 async def delete_third_party_token(
@@ -139,16 +129,13 @@ async def delete_third_party_token(
         
         deleted_count = result.rowcount
         if deleted_count > 0:
-            logger.info(f"{provider} token deleted for user {user_id}")
             return True
         else:
-            logger.warning(f"No {provider} token found to delete for user {user_id}")
             return False
             
     except Exception as e:
         await db.rollback()
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[delete_third_party_token] failed id={user_id}", original_exception=e)
 
 
 async def get_all_tokens_by_provider(
@@ -165,8 +152,7 @@ async def get_all_tokens_by_provider(
         return res.scalars().all()
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[get_all_tokens_by_provider] failed ", original_exception=e)
 
 
 async def get_all_user_tokens(
@@ -183,8 +169,7 @@ async def get_all_user_tokens(
         return res.scalars().all()
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[get_all_user_tokens] failed id={user_id}", original_exception=e)
 
 
 async def is_third_party_connected(
@@ -198,5 +183,4 @@ async def is_third_party_connected(
         return token is not None
         
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise DBError(context=f"[is_third_party_connected] failed id={user_id}", original_exception=e)

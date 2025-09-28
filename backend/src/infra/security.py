@@ -6,10 +6,8 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi.concurrency import run_in_threadpool
 
 from config.settings import security
-from config.exceptions import TokenInvalidError
-from config.logger import get_logger
+from config.exceptions import TokenInvalidError, InternalError
 
-logger = get_logger(__file__)
 
 
 # bcrypt = 단방향 해시
@@ -36,15 +34,15 @@ def encrypt_token(data: str, key: bytes, token_type:str = None) -> str:
     try:
         fernet = Fernet(key)
         return fernet.encrypt(data.encode()).decode()
-    except Exception:
-        raise TokenInvalidError(status_code=500, detail="Token encryption failed", token_type=token_type)
+    except Exception as e:
+        raise InternalError(context="Token encryption failed", original_exception=e)
 
 # 공통 복호화 함수
 def decrypt_token(token_encrypted: str, key: bytes, token_type:str = None) -> str:
     fernet = Fernet(key)
     try:
         return fernet.decrypt(token_encrypted.encode()).decode()
-    except InvalidToken:
-        raise TokenInvalidError(status_code=401, detail="Invalid token")
-    except Exception:
-        raise TokenInvalidError(status_code=500, detail="Token decryption failed", token_type=token_type)
+    except InvalidToken as e:
+        raise TokenInvalidError(detail="Invalid token", original_exception=e)
+    except Exception as e:
+        raise InternalError(context="Token decryption failed", original_exception=e)

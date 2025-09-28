@@ -1,17 +1,18 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from config.exceptions import TokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 from infra.db.storage.session import get_session
 from uuid import UUID
 
+from config.logger import get_logger
+from config.exceptions import CustomError, TokenInvalidError
 from schemas.models import TokenPayload
 from adapters import TokenAdapter
 from infra.db.storage.repo import get_user_by_id
 
 auth_scheme = HTTPBearer()
 token_adapter = TokenAdapter()
-
+logger = get_logger(__name__)
 
 
 async def get_test_user() -> TokenPayload:
@@ -29,9 +30,14 @@ async def get_current_user(
     """헤더에서 jwt 문자열 추출. 검증후 사용자 ID 추출"""
     try:
         return token_adapter.verify_access_token(access_cred.credentials)
-        
-    except TokenError as e:
+
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"get_current_user. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
     
 async def validate_current_user(
     db:AsyncSession=Depends(get_session),
@@ -42,21 +48,24 @@ async def validate_current_user(
         payload = token_adapter.verify_access_token(access_cred.credentials)
         user = await get_user_by_id(user_id=payload.user_id, db=db) 
         if not user:
-            raise HTTPException(status_code=400, detail="invalid user token")
+            raise TokenInvalidError(detail="invalid user token")
         return True
-    except HTTPException:
-        raise
-    except TokenError as e:
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
-        raise HTTPException(status_code=500, detail="error validating user token")
-
+        logger.exception(f"validate_current_user. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
 async def get_current_header(
     access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)
 ) -> str:
     """헤더에서 jwt 문자열 추출"""
     try:
         return access_cred.credentials
-        
-    except TokenError as e:
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+    except Exception as e:
+        logger.exception(f"get_current_header. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    

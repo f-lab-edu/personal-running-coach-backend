@@ -8,9 +8,7 @@
 6. 로그인 처리 후 토큰 반환 
 
 """
-
-
-from fastapi import APIRouter, Request, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body
 from starlette.responses import RedirectResponse
 import urllib.parse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +19,10 @@ from adapters.account_adapter import AccountAdapter
 from adapters.token_adapter import TokenAdapter
 from use_cases.auth.oauth_google import GoogleHandler
 from config.settings import google
+from config.exceptions import CustomError
+from config.logger import get_logger
+
+logger = get_logger(__name__)
 
 google_router = APIRouter(prefix="/google", tags=['auth-google'])
 
@@ -33,16 +35,24 @@ def get_handler(db:AsyncSession=Depends(get_session))->GoogleHandler:
 
 @google_router.get("/login")
 async def login_with_google():
-    params = {
-        "client_id": google.client_id,
-        "redirect_uri": google.redirect_uri, ## 프론트 콜백 uri
-        "response_type": "code", 
-        "scope": google.scope,
-        "access_type": "offline",  # online 
-        "prompt": "consent",
-    }
-    url = f"{google.auth_endpoint}?{urllib.parse.urlencode(params)}"
-    return RedirectResponse(url)
+    try:
+        params = {
+            "client_id": google.client_id,
+            "redirect_uri": google.redirect_uri, ## 프론트 콜백 uri
+            "response_type": "code", 
+            "scope": google.scope,
+            "access_type": "offline",  # online 
+            "prompt": "consent",
+        }
+        url = f"{google.auth_endpoint}?{urllib.parse.urlencode(params)}"
+        return RedirectResponse(url)
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"login_with_google. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @google_router.post("/callback", response_model=LoginResponse)
@@ -50,6 +60,13 @@ async def google_callback(code:str = Body(..., embed=True),
                           google_handler:GoogleHandler = Depends(get_handler)):
     if not code:
         raise HTTPException(status_code=400, detail="missing code")
-    login_res = await google_handler.handle_login(auth_code=code)
-    
-    return login_res
+    try:
+        login_res = await google_handler.handle_login(auth_code=code)
+        return login_res
+    except CustomError as e:
+        if e.original_exception:
+            logger.exception(f"{e.context} {str(e.original_exception)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        logger.exception(f"google callback. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
