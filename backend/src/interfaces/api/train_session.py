@@ -3,8 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
 
-from adapters import StravaAdapter, TrainingAdapter
+from adapters import StravaAdapter, TrainingAdapter, RedisAdapter
 from infra.db.storage.session import get_session
+from infra.db.redis.redis_client import get_redis, Redis
 from use_cases.train_session.handle_train_session import TrainSessionHandler
 from schemas.models import TokenPayload, TrainRequest
 from use_cases.auth.dependencies import get_current_user
@@ -16,14 +17,18 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/trainsession", tags=['train-session'])
 
 
-def get_handler(db:AsyncSession=Depends(get_session))->TrainSessionHandler:
+def get_handler(db:AsyncSession=Depends(get_session),
+                redisdb:Redis=Depends(get_redis),
+                )->TrainSessionHandler:
     data_adapter = StravaAdapter(db=db)
     training_adapter = TrainingAdapter(db=db)
     auth_handler = StravaHandler(db=db, adapter=data_adapter)
+    redis_adapter = RedisAdapter(db=redisdb)
     return TrainSessionHandler(
         db_adapter=training_adapter,
         data_adapter=data_adapter,
-        auth_handler=auth_handler
+        auth_handler=auth_handler,
+        redis_adapter=redis_adapter
     )
 
 # 스케줄 새로 로드

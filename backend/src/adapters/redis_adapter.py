@@ -3,6 +3,7 @@ from uuid import UUID
 from ports.redis_port import RedisPort
 from infra.db.redis import repo
 from config.exceptions import InternalError, CustomError
+from config.constants import ETAG_TTL_SEC
 
 class RedisAdapter(RedisPort):
     def __init__(self, db:Redis):
@@ -17,7 +18,8 @@ class RedisAdapter(RedisPort):
         try:
             await repo.set_value(redisdb=self.db,
                                  k=self._etag_key(user_id=user_id, page=page),
-                                 v=etag
+                                 v=etag,
+                                 ttl=ETAG_TTL_SEC
                                  )
         except CustomError:
             raise

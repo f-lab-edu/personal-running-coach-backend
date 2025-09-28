@@ -3,10 +3,10 @@ from config.exceptions import DBError
 
 
 
-async def set_value(redisdb: Redis, k:str, v:str):
+async def set_value(redisdb: Redis, k:str, v:str, ttl:int = None):
     """유저별 + 페이지별 etag 저장"""
     try:
-        await redisdb.set(k, v)
+        await redisdb.set(k, v, ex=ttl)
     except Exception as e:
         raise DBError(context=f"error set_value {k} {v}", original_exception=e)
 
