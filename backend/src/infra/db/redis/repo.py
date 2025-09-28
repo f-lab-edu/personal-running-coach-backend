@@ -1,15 +1,18 @@
 from redis.asyncio import Redis
-from uuid import UUID
+from config.exceptions import DBError
 
 
-## 유저+페이지별 etag 키 생성
-def _etag_key(user_id: UUID, page: str) -> str:
-    return f"user:{user_id}:page:{page}:etag"
 
-async def set_user_etag(redisdb: Redis, user_id: UUID, page: str, etag: str):
+async def set_value(redisdb: Redis, k:str, v:str):
     """유저별 + 페이지별 etag 저장"""
-    await redisdb.set(_etag_key(user_id, page), etag)
+    try:
+        await redisdb.set(k, v)
+    except Exception as e:
+        raise DBError(context=f"error set_value {k} {v}", original_exception=e)
 
-async def get_user_etag(redisdb: Redis, user_id: UUID, page: str) -> str | None:
+async def get_value(redisdb: Redis, k:str) -> str | None:
     """유저별 + 페이지별 etag 조회"""
-    return await redisdb.get(_etag_key(user_id, page))
+    try:
+        return await redisdb.get(k)
+    except Exception as e:
+        raise DBError(context=f"error get_value {k}", original_exception=e)
