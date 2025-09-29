@@ -72,17 +72,28 @@ export async function fetchTrainDetail(session_id: string) {
 
 
 // Fetch train schedules (GET /trainsession/fetch-schedules)
-export async function fetchSchedules(token: string, date?: number) {
+export async function fetchSchedules(token: string, date?: number, etag?: string) {
   const url = new URL(`${API_BASE_URL}/trainsession/fetch-schedules`);
   if (date) url.searchParams.append('date', date.toString());
-    const res = await fetch(url.toString(), {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
+
+  // header 
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (etag) headers["If-None-Match"] = etag;
+
+  const res = await fetch(url.toString(), {headers});
+
+  // 
+  if (res.status == 304) {
+    return { notModified: true};
+  }
+
   if (!res.ok) {
     // console.log(res);
     throw new Error('Failed to fetch schedules')
   };
-  return await res.json();
+  // 서버에서 새로운 etag + data 내려줌
+  const data = await res.json();
+  return { notModified: false, ...data };
 }
 
 // Fetch new schedules (GET /trainsession/fetch-new-schedules)

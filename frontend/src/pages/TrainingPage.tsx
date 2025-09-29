@@ -26,33 +26,74 @@ const TrainingPage: React.FC = () => {
 
 	const accessToken = localStorage.getItem('access_token');
 
+	// Helper keys for sessionStorage
+	const ETAG_KEY = 'train_schedules_etag';
+	const DATA_KEY = 'train_schedules_data';
+
 	useEffect(() => {
 		if (!accessToken) return;
 		setLoading(true);
-		fetchSchedules(accessToken)
-			.then(data => {
-				setSchedules(data);
-				})
+		setError('');
+		// Get etag from sessionStorage
+		const etag = sessionStorage.getItem(ETAG_KEY) || undefined;
+		fetchSchedules(accessToken, undefined, etag)
+			.then(result => {
+				if (result.notModified) {
+					// Use cached data
+					const cached = sessionStorage.getItem(DATA_KEY);
+					if (cached) {
+						try {
+							setSchedules(JSON.parse(cached));
+						} catch {
+							setSchedules([]);
+						}
+					} else {
+						setSchedules([]);
+					}
+				} else {
+					// Save new etag and data to sessionStorage
+					if (result.etag) sessionStorage.setItem(ETAG_KEY, result.etag);
+					if (result.data) sessionStorage.setItem(DATA_KEY, JSON.stringify(result.data));
+					setSchedules(result.data || []);
+				}
+			})
 			.catch(e => setError(e.message))
 			.finally(() => setLoading(false));
 	}, [accessToken]);
 
-	const handleRefresh = async () => {
-		if (!accessToken) return;
-		setLoading(true);
-		setError('');
-		try {
-			const res = await fetchNewSchedules(accessToken);
-			if (res) {
-				const newSchedules = await fetchSchedules(accessToken);
-				setSchedules(newSchedules);
+		const handleRefresh = async () => {
+			if (!accessToken) return;
+			setLoading(true);
+			setError('');
+			try {
+				const res = await fetchNewSchedules(accessToken);
+				if (res) {
+					// After new schedules are generated, fetch with etag again
+					const etag = sessionStorage.getItem(ETAG_KEY) || undefined;
+					const result = await fetchSchedules(accessToken, undefined, etag);
+					if (result.notModified) {
+						const cached = sessionStorage.getItem(DATA_KEY);
+						if (cached) {
+							try {
+								setSchedules(JSON.parse(cached));
+							} catch {
+								setSchedules([]);
+							}
+						} else {
+							setSchedules([]);
+						}
+					} else {
+						if (result.etag) sessionStorage.setItem(ETAG_KEY, result.etag);
+						if (result.data) sessionStorage.setItem(DATA_KEY, JSON.stringify(result.data));
+						setSchedules(result.data || []);
+					}
+				}
+			} catch (e: any) {
+				setError(e.message);
+			} finally {
+				setLoading(false);
 			}
-		} catch (e: any) {
-			setError(e.message);
-		} finally {
-			setLoading(false);
-		}
-	};
+		};
 
 	// Calendar logic
 	const year = currentMonth.getFullYear();
