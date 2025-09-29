@@ -1,4 +1,8 @@
 class CustomError(Exception):
+    """
+    detail = 클라이언트 오류 메세지용
+    context = 내부 로깅용
+    """
     status_code: int = 500
     detail: str = "Internal Server Error"
     context: str = ""
@@ -16,12 +20,15 @@ class CustomError(Exception):
     
 class TokenExpiredError(CustomError):
     status_code = 401
+    detail = "Token has expired"
         
 class TokenInvalidError(CustomError):
     status_code = 401
+    detail = "Invalid Token"
 
 class NotModifiedError(CustomError):
     status_code = 304
+    detail = "resource has not been modified"
     
 
 class DBError(CustomError):
@@ -32,6 +39,8 @@ class InternalError(CustomError):
 
 class NotFoundError(CustomError):
     status_code = 404
+    detail="resource coult not be found"
 
 class ValidationError(CustomError):
     status_code = 400
+    detail = "invalid request"
