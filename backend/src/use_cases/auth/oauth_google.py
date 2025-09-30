@@ -105,31 +105,20 @@ class GoogleHandler:
             # 액세스 토큰 생성
             access_token = self.token_adapter.create_access_token(user_id=account_response.id)
             
-            # 4. 기존 리프레시 토큰 있는지 확인
-            existing_token = await repo.get_refresh_token(user_id=account_response.id,
-                                                        db=self.db
-                                                        )
-            # 기존 토큰 존재시 기존 토큰 반환
-            if existing_token:
-                refresh_token = decrypt_token(existing_token,
-                                        key=security.encryption_key_refresh)
-
-            else:
-                # 5. 새 리프레시 토큰 발급
-                refresh_result = self.token_adapter.create_refresh_token(user_id=account_response.id)
-                refresh_token = refresh_result.token
-                
-                # 리프레시 토큰 암호화
-                encrypted = encrypt_token(data=refresh_token,
-                                        key=security.encryption_key_refresh,
-                                        token_type="account_refresh"
-                                        )
+            refresh_result = self.token_adapter.create_refresh_token(user_id=account_response.id)
+            refresh_token = refresh_result.token
             
-                # 리프레시 토큰 저장
-                await repo.add_refresh_token(
-                    user_id=account_response.id, token=encrypted, 
-                    expires_at=refresh_result.expires_at, db=self.db
-                    )        
+            # 리프레시 토큰 암호화
+            encrypted = encrypt_token(data=refresh_token,
+                                    key=security.encryption_key_refresh,
+                                    token_type="account_refresh"
+                                    )
+        
+            # 리프레시 토큰 저장
+            await repo.save_refresh_token(
+                user_id=account_response.id, token=encrypted, 
+                expires_at=refresh_result.expires_at, db=self.db
+                )        
             
             third_parties = await get_all_user_tokens(
                 user_id= account_response.id,
@@ -141,7 +130,7 @@ class GoogleHandler:
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access_token,
-                    refresh_token=refresh_token,
+                    refresh_token=encrypted,
                     ),
                 user=account_response,
                 connected=connected_li

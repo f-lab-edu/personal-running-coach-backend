@@ -35,31 +35,21 @@ class AuthHandler():
 
             # 토큰 발급
             access = self.token_adapter.create_access_token(user_id=acct_response.id)
-            
-            # 기존 리프레시 토큰 있는지 확인
-            existing_token = await repo.get_refresh_token(user_id=acct_response.id,
-                                                        db=self.db
-                                                        )
-            
-            # 기존 토큰 존재시 기존 토큰 반환
-            if existing_token:
-                refresh_token = decrypt_token(existing_token,
-                                        key=security.encryption_key_refresh)
                 
-            else: # 없을 시 새 토큰 발급
-                refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
-                refresh_token = refresh_result.token
-                
-                # 리프레시 토큰 암호화 저장
-                encrypted = encrypt_token(data=refresh_token,
-                                        key=security.encryption_key_refresh,
-                                        token_type="account_refresh"
-                                        )
-                await repo.add_refresh_token(
-                    user_id=acct_response.id, token=encrypted, 
-                    expires_at=refresh_result.expires_at,
-                    db=self.db
-                )
+            # else: # 없을 시 새 토큰 발급
+            refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
+            refresh_token = refresh_result.token
+            
+            # 리프레시 토큰 암호화 저장
+            encrypted = encrypt_token(data=refresh_token,
+                                    key=security.encryption_key_refresh,
+                                    token_type="account_refresh"
+                                    )
+            await repo.save_refresh_token(
+                user_id=acct_response.id, token=encrypted, 
+                expires_at=refresh_result.expires_at,
+                db=self.db
+            )
             
             third_parties = await get_all_user_tokens(
                 user_id= acct_response.id,
@@ -70,7 +60,7 @@ class AuthHandler():
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access,
-                    refresh_token=refresh_token
+                    refresh_token=encrypted
                 ),
                 user=acct_response,
                 connected=connected_li
@@ -139,14 +129,18 @@ class AuthHandler():
             기타 에러 발생시 500 에러
         """
         try:
+            # 토큰 디코드
+            refresh_decrypted = decrypt_token(token_encrypted=refresh,
+                                              key=security.encryption_key_refresh,
+                                                token_type="account_refresh"
+                                              )
             # 액세스 토큰 검증
-            refresh_payload = self.token_adapter.verify_refresh_token(refresh)
-            print(refresh_payload)
+            refresh_payload = self.token_adapter.verify_refresh_token(refresh_decrypted)
             # 리프레시 토큰 db 대조
+
             valid = await self.account_adapter.validate_token_with_db(
                                         user_id=refresh_payload.user_id,
-                                        refresh_token=refresh)
-            print(valid)
+                                        refresh_token=refresh_decrypted)
             # 토큰 not valid
             if not valid: 
                 raise ValidationError(detail="refresh_token not valid")

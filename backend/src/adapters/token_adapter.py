@@ -126,7 +126,7 @@ class TokenAdapter(TokenPort):
             return token
         
         except JWTError as e:
-            raise TokenInvalidError(detail=f"invalid token")
+            raise TokenInvalidError(detail=f"invalid token", original_exception=e)
         except CustomError:
             raise
         except Exception as e:

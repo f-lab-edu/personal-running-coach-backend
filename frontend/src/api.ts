@@ -156,11 +156,11 @@ export async function loginWithToken() {
   if (res.ok) return await res.json();
   
   else { // refresh token
-    const accessToken = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${refreshToken}`,
         'Content-Type': 'application/json',
       },
     });

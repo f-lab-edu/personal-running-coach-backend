@@ -64,8 +64,9 @@ const App: React.FC = () => {
                 localStorage.setItem("refresh_token", res.token.refresh_token);
             }
         })
-        .catch(() => {
+        .catch((e) => {
             // 토큰이 만료됐으면 그냥 로그아웃 상태 유지
+            // console.log("expired.", e)
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
         });
@@ -78,6 +79,7 @@ const App: React.FC = () => {
         setThirdList([]);
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        sessionStorage.clear()
         navigate("/");
     };
 
