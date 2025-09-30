@@ -18,7 +18,7 @@ from schemas.models import (TokenPayload,
 from use_cases.auth.auth_strava import StravaHandler
 from domains.data_analyzer import DataAnalyzer
 from config.exceptions import (CustomError, InternalError, NotModifiedError, ValidationError)
-from src.infra.etag import generate_etag
+from infra.etag import generate_etag
 from config.constants import ETAG_TRAIN_SESSION
 
 
