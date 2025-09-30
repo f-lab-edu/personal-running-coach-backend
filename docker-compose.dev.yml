@@ -29,6 +29,7 @@ services:
       - ./backend:/app
     environment:
       - PYTHONPATH=/app/src
+      - RUN_ENV=docker
       - DATABASE_URL=postgresql+asyncpg://user:password@db:5432/mydb
     depends_on:
       db:

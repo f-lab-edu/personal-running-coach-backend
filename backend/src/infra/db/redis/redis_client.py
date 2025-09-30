@@ -1,10 +1,15 @@
-from redis.asyncio import Redis, ConnectionPool
+from redis.asyncio import Redis
 from redis.exceptions import RedisError, ConnectionError
 from config.settings import redisdb
-
+import os
+import fakeredis
 """
 모듈 레벨 싱글톤 Redis
+로컬 환경시 fakeredis 반환
 """
+RUN_ENV = os.getenv("RUN_ENV", "local")
+FAKE_REDIS = RUN_ENV == "local"
+print(FAKE_REDIS)
 
 redis_instance: Redis | None = None
 
@@ -14,16 +19,19 @@ async def init_redis():
     """
     global redis_instance
     if redis_instance is None:
-        try:
-            redis_instance = Redis(
-                host=redisdb.host,
-                port=redisdb.port,
-                decode_responses=True,
-                max_connections=300,
-            )
-            # 필요하면 TTL 만료 이벤트 구독 등 여기서 추가 설정
-        except (ConnectionError, RedisError) as e:
-            raise RuntimeError(f"Redis 초기화 실패 {e}") from e
+        if FAKE_REDIS:
+            redis_instance = fakeredis.aioredis.FakeRedis(decode_responses=True)
+        else:
+            try:
+                redis_instance = Redis(
+                    host=redisdb.host,
+                    port=redisdb.port,
+                    decode_responses=True,
+                    max_connections=300,
+                )
+                # 필요하면 TTL 만료 이벤트 구독 등 여기서 추가 설정
+            except (ConnectionError, RedisError) as e:
+                raise RuntimeError(f"Redis 초기화 실패 {e}") from e
 
 
 async def close_redis():
