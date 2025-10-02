@@ -236,10 +236,12 @@ class AccountAdapter(AccountPort):
         except Exception as e:
             raise InternalError(context="Error deactivate_account", original_exception=e)
     
-    async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
+    async def validate_token_with_db(self, user_id:UUID, refresh_token:str,
+                                     device_id:UUID
+                                     )->bool:
         """db에 저장된 리프레시토큰과 클라이언트의 리프래시토큰 대조 검증"""
         try:
-            db_refresh = await repo.get_refresh_token(db=self.db, user_id=user_id)
+            db_refresh = await repo.get_refresh_token(db=self.db, user_id=user_id, device_id=device_id)
             
             # db 에 기존 refresh 없음
             if db_refresh is None:
@@ -262,5 +264,13 @@ class AccountAdapter(AccountPort):
     
 
     # # TODO: db 에 저장된 토큰 삭제
-    # async def invalidate_refresh_token(self, jwt_str:str)->bool: 
-    #     ...
+    async def remove_token(self, user_id:UUID, device_id:UUID)->bool: 
+        try:
+            res = await repo.remove_refresh_token(user_id=user_id,
+                                                device_id=device_id,
+                                                db=self.db)
+            return res
+        except CustomError:
+            raise
+        except Exception as e:
+            raise InternalError(context="Error remove_token", original_exception=e)

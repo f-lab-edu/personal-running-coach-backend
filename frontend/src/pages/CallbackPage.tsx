@@ -32,9 +32,9 @@ export default function CallbackPage(
         if (!res.ok) throw new Error("Login failed");
         const data = await res.json();
 
-        // Save token and user info
+        // Save token, device_id, user info
         localStorage.setItem("access_token", data.token.access_token);
-        // localStorage.setItem("refresh_token", data.token.refresh_token);
+        localStorage.setItem("device_id", data.device_id)
         // 부모 state 업데이트
         setUser(data.user);
         setThirdList(data.connected);

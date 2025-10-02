@@ -1,6 +1,7 @@
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID, uuid4
 import httpx
 
 from config.settings import google, security
@@ -114,10 +115,15 @@ class GoogleHandler:
                                     token_type="account_refresh"
                                     )
         
+            device_id = uuid4()
+
             # 리프레시 토큰 저장
             await repo.save_refresh_token(
-                user_id=account_response.id, token=encrypted, 
-                expires_at=refresh_result.expires_at, db=self.db
+                user_id=account_response.id, 
+                device_id=device_id,
+                token=encrypted, 
+                expires_at=refresh_result.expires_at, 
+                db=self.db
                 )        
             
             third_parties = await get_all_user_tokens(
@@ -132,6 +138,7 @@ class GoogleHandler:
                     access_token=access_token,
                     refresh_token=encrypted,
                     ),
+                device_id=device_id,
                 user=account_response,
                 connected=connected_li
             )

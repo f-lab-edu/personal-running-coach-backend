@@ -128,6 +128,7 @@ class AccountResponse(BaseModel):
 class LoginResponse(BaseModel):
     token: Optional[TokenResponse] = None
     user: AccountResponse
+    device_id: Optional[UUID] = None
     connected: List[str] = []
     
 class TrainResponse(BaseModel):

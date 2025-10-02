@@ -33,6 +33,7 @@ class UserInfo(SQLModel, table=True):
 class Token(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
+    device_id: UUID = Field(default_factory=uuid4)
     refresh_token: str
     expires_at: int
     

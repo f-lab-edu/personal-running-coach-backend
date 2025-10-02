@@ -17,6 +17,9 @@ class CustomError(Exception):
         self.context = context if context else detail
         super().__init__(self.detail)
 
+    def __str__(self):
+        return f"{self.status_code}: {self.context}"
+
     
 class TokenExpiredError(CustomError):
     status_code = 401

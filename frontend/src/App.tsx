@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate} from 'react-router-dom';
-import { loginWithToken } from './api.ts';
+import { loginWithToken, logout } from './api.ts';
 
 // Placeholder pages
 import MainPage from './pages/MainPage.tsx';
@@ -61,25 +61,25 @@ const App: React.FC = () => {
             setThirdList(res.connected);
             if (res.token){
                 localStorage.setItem("access_token", res.token.access_token);
-                // localStorage.setItem("refresh_token", res.token.refresh_token);
             }
         })
-        .catch((e) => {
-            // 토큰이 만료됐으면 그냥 로그아웃 상태 유지
-            console.log("expired.", e)
-            localStorage.removeItem("access_token");
-            // localStorage.removeItem("refresh_token");
+        .catch(() => {
+            handleLogout()
         });
     }
     }, []);
 
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setUser(null);
         setThirdList([]);
+        const device_id = localStorage.getItem("device_id") || "";
+        await logout(device_id);
+        
         localStorage.removeItem("access_token");
-        // localStorage.removeItem("refresh_token");
-        sessionStorage.clear()
+        localStorage.removeItem("device_id");
+        sessionStorage.clear();
+
         navigate("/");
     };
 

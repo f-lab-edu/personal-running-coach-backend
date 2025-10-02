@@ -157,20 +157,18 @@ export async function loginWithToken() {
   if (res.ok) return await res.json();
   
   else { // refresh token
-    // const refreshToken = localStorage.getItem("refresh_token");
+    const device_id = localStorage.getItem("device_id");
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: "include",
       headers: {
-        // 'Authorization': `Bearer ${refreshToken}`,
+        'Authorization': `Bearer ${device_id}`,
         'Content-Type': 'application/json',
       },
     });
     if (res.ok) return await res.json();
     else throw new Error("no token login");
   }
-
-
 }
 
 export async function loginWithGoogle() {
@@ -187,6 +185,26 @@ export async function signup(email: string, pwd: string, name: string) {
   });
   return res.ok;
 }
+
+
+export async function logout(deviceId: string) {
+  const token = localStorage.getItem('access_token');
+  const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // HttpOnly refresh_token 쿠키 전송
+    body: JSON.stringify({ device_id: deviceId }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Logout failed');
+  }
+  return await res.json();
+}
+
 
 export async function connectStrava() {
   const token = localStorage.getItem('access_token');

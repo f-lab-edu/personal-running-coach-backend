@@ -41,5 +41,9 @@ class AccountPort(ABC):
         ...
     
     @abstractmethod
-    async def validate_token_with_db(self, user_id:UUID, refresh_token:str)->bool:
+    async def validate_token_with_db(self, user_id:UUID, device_id:UUID, refresh_token:str)->bool:
+        ...
+
+    @abstractmethod
+    async def remove_token(self, user_id:UUID, device_id:UUID)->bool: 
         ...
