@@ -61,14 +61,14 @@ const App: React.FC = () => {
             setThirdList(res.connected);
             if (res.token){
                 localStorage.setItem("access_token", res.token.access_token);
-                localStorage.setItem("refresh_token", res.token.refresh_token);
+                // localStorage.setItem("refresh_token", res.token.refresh_token);
             }
         })
         .catch((e) => {
             // 토큰이 만료됐으면 그냥 로그아웃 상태 유지
-            // console.log("expired.", e)
+            console.log("expired.", e)
             localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
+            // localStorage.removeItem("refresh_token");
         });
     }
     }, []);
@@ -78,7 +78,7 @@ const App: React.FC = () => {
         setUser(null);
         setThirdList([]);
         localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        // localStorage.removeItem("refresh_token");
         sessionStorage.clear()
         navigate("/");
     };

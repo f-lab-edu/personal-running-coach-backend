@@ -136,7 +136,8 @@ export async function loginWithEmail(email: string, pwd: string) {
   const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ email, pwd })
+     body: JSON.stringify({ email, pwd }),
+     credentials: "include",
   });
   if (!res.ok) throw new Error('Login failed');
   return await res.json();
@@ -156,11 +157,12 @@ export async function loginWithToken() {
   if (res.ok) return await res.json();
   
   else { // refresh token
-    const refreshToken = localStorage.getItem("refresh_token");
+    // const refreshToken = localStorage.getItem("refresh_token");
     const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
+      credentials: "include",
       headers: {
-        'Authorization': `Bearer ${refreshToken}`,
+        // 'Authorization': `Bearer ${refreshToken}`,
         'Content-Type': 'application/json',
       },
     });

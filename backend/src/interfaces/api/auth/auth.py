@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -33,6 +33,7 @@ def get_auth_handler(db:AsyncSession=Depends(get_session))->AuthHandler:
 
 @router.post("/login", response_model=LoginResponse)
 async def login(request:LoginRequest, 
+                response:Response,
                 auth_handler:AuthHandler=Depends(get_auth_handler)
                 ):
     """로그인.
@@ -41,7 +42,19 @@ async def login(request:LoginRequest,
     """
     try:
         token_response = await auth_handler.login(request.email, request.pwd)
-        return token_response
+
+        # 리프레시 토큰을 쿠키로 전달
+        response.set_cookie(
+            key="refresh_token",
+            value=token_response.token.refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=30 * 24 * 60 * 60
+        )
+
+        token_response.token.refresh_token = None
+        return token_response        
     except CustomError as e:
         if e.original_exception:
             logger.exception(f"{e.context} {str(e.original_exception)}")
@@ -89,14 +102,18 @@ async def login_token(
     
 @router.post("/refresh", response_model=LoginResponse)
 async def refresh(
-    refresh_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    # refresh_cred: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    request:Request,
     auth_handler:AuthHandler=Depends(get_auth_handler)):
     """토큰 재발급
         header: refresh_token
         return: LoginResponse
     """
     try:
-        refresh_token = refresh_cred.credentials
+        # refresh_token = refresh_cred.credentials
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(status_code=401, detail="no refresh token provided")
         return await auth_handler.refresh_token(refresh=refresh_token)
     except CustomError as e:
         if e.original_exception:
