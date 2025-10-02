@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from jose import jwt, JWTError
+from jose import jwt, JWTError, ExpiredSignatureError
 from uuid import UUID
 
 from ports.token_port import TokenPort
@@ -99,6 +99,8 @@ class TokenAdapter(TokenPort):
 
             return token
         
+        except ExpiredSignatureError:
+            raise TokenExpiredError(detail=f"token expired")
         except JWTError as e:
             raise TokenInvalidError(detail=f"invalid token", original_exception=e)
         except CustomError:
@@ -124,7 +126,8 @@ class TokenAdapter(TokenPort):
                 raise TokenExpiredError(detail="token expired")
 
             return token
-        
+        except ExpiredSignatureError:
+            raise TokenExpiredError(detail=f"token expired")
         except JWTError as e:
             raise TokenInvalidError(detail=f"invalid token", original_exception=e)
         except CustomError:

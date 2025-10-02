@@ -104,12 +104,13 @@ async def save_refresh_token(user_id:UUID,
             refresh_token.refresh_token = token
             refresh_token.expires_at = expires_at
         else:
-            refresh_token = db.add(Token(user_id=user_id, 
+            refresh_token = Token(user_id=user_id, 
                         refresh_token=token,
                         expires_at=expires_at
-                        ))
+                        )
+            db.add(refresh_token)
         await db.commit()
         await db.refresh(refresh_token)
     except Exception as e:
         await db.rollback()
-        raise DBError(context=f"[get_refresh_token] failed id={user_id}", original_exception=e)
+        raise DBError(context=f"[save_refresh_token] failed id={user_id}", original_exception=e)
