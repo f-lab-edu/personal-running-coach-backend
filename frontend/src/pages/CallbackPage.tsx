@@ -23,6 +23,7 @@ export default function CallbackPage(
         // Call backend with code
   const res = await fetch(`${API_BASE_URL}/auth/google/callback`, {
           method: "POST",
+          credentials:"include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -33,7 +34,7 @@ export default function CallbackPage(
 
         // Save token and user info
         localStorage.setItem("access_token", data.token.access_token);
-        localStorage.setItem("refresh_token", data.token.refresh_token);
+        // localStorage.setItem("refresh_token", data.token.refresh_token);
         // 부모 state 업데이트
         setUser(data.user);
         setThirdList(data.connected);
