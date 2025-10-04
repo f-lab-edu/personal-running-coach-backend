@@ -1,7 +1,7 @@
 """
 training data 관련 유스케이스
 """
-from typing import List, Dict
+from typing import List
 from uuid import UUID, uuid4
 from datetime import datetime, timezone
 
@@ -18,7 +18,7 @@ from schemas.models import (TokenPayload,
 from use_cases.auth.auth_strava import StravaHandler
 from domains.data_analyzer import DataAnalyzer
 from config.exceptions import (CustomError, InternalError, NotModifiedError, ValidationError)
-from infra.etag import generate_etag
+from infra.etag import generate_etag, serialize_train_response
 from config.constants import ETAG_TRAIN_SESSION
 
 
@@ -86,13 +86,9 @@ class TrainSessionHandler:
                                              stream=stream_data
                                              )
                 
-            # etag 계산 / redis 에 업데이트
-            cur = datetime.now(timezone.utc).isoformat()
-            etag = await generate_etag(cur, str(uuid4()))
-            await self.redis_adapter.set_user_etag(user_id=payload.user_id,
-                                                page=ETAG_TRAIN_SESSION,
-                                                etag= etag
-                                                )
+            # 데이터 수정 시점 : etag 만료 
+            await self.redis_adapter.remove_user_etag(user_id=payload.user_id,
+                                                page=ETAG_TRAIN_SESSION)
 
             ## 사용자에게 리턴
             return True
@@ -113,23 +109,22 @@ class TrainSessionHandler:
         try:
             redis_etag = await self.redis_adapter.get_user_etag(user_id=payload.user_id,page=ETAG_TRAIN_SESSION)
             
-            # 서버에 etag 없을경우 새로 생성 후 데이터 + etag 반환
-            if redis_etag is None:
-                cur = datetime.now(timezone.utc).isoformat()
-                redis_etag = await generate_etag(cur + str(uuid4()))
-                await self.redis_adapter.set_user_etag(user_id=payload.user_id,
-                                                    page=ETAG_TRAIN_SESSION,
-                                                    etag= redis_etag)
-
             # 사용자 etag 가 서버와 매칭할 경우 304 
-            elif etag is not None and redis_etag == etag :
-                raise NotModifiedError(context="user cache not modified")
+            if redis_etag is not None and etag is not None and redis_etag == etag :
+                raise NotModifiedError(context="data not modified")
 
-
+            # etag 미스매치. etag 생성 및 데이터 + etag 반환
             data =  await self.db_adapter.get_sessions_by_date(user_id=payload.user_id,
                                                 start_date=start_date)
+            data_serializable = [serialize_train_response(item) for item in data]
+            etag = await generate_etag(data_serializable)
+            print(etag)
+            await self.redis_adapter.set_user_etag(user_id=payload.user_id,
+                                                page=ETAG_TRAIN_SESSION,
+                                                etag= etag)
+
             return TrainSessionResponse(
-                etag=redis_etag,
+                etag=etag,
                 data=data
             )
 
@@ -157,13 +152,9 @@ class TrainSessionHandler:
                                                         session=session
                                                         )
         
-            # etag 계산 / redis 업데이트
-            cur = datetime.now(timezone.utc).isoformat()
-            etag = await generate_etag(cur + str(uuid4()))
+            # redis etag 삭제 
             await self.redis_adapter.set_user_etag(user_id=payload.user_id,
-                                                page=ETAG_TRAIN_SESSION,
-                                                etag= etag
-                                                )
+                                                page=ETAG_TRAIN_SESSION)
             return res
 
         except CustomError:

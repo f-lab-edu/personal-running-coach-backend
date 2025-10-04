@@ -36,3 +36,17 @@ class RedisAdapter(RedisPort):
             InternalError(context=f"adapter get_user_etag {user_id} {page}", original_exception=e)
 
     
+    async def remove_user_etag(self, user_id: UUID, page: str):
+        """사용자 페이지에 저장된 ETag를 삭제(만료)"""
+        try:
+            await repo.delete_key(
+                redisdb=self.db,
+                k=self._etag_key(user_id=user_id, page=page)
+            )
+        except CustomError:
+            raise
+        except Exception as e:
+            raise InternalError(
+                context=f"adapter remove_user_etag {user_id} {page}",
+                original_exception=e
+        )

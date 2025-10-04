@@ -16,3 +16,11 @@ async def get_value(redisdb: Redis, k:str) -> str | None:
         return await redisdb.get(k)
     except Exception as e:
         raise DBError(context=f"error get_value {k}", original_exception=e)
+
+async def delete_key(redisdb: Redis, k: str) -> int:
+    """주어진 키를 삭제하고 삭제된 키 개수 반환"""
+    try:
+        deleted_count = await redisdb.delete(k)
+        return deleted_count
+    except Exception as e:
+        raise DBError(context=f"error delete_key {k}", original_exception=e)
