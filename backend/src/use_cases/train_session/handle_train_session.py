@@ -153,7 +153,7 @@ class TrainSessionHandler:
                                                         )
         
             # redis etag 삭제 
-            await self.redis_adapter.set_user_etag(user_id=payload.user_id,
+            await self.redis_adapter.remove_user_etag(user_id=payload.user_id,
                                                 page=ETAG_TRAIN_SESSION)
             return res
 
