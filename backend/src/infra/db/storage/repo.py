@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_, delete
 from uuid import UUID
 
 from config.exceptions import DBError
@@ -77,11 +77,12 @@ async def get_user_info(user_id:UUID,
         await db.rollback()
         raise DBError(context=f"[get_user_info] failed id={user_id}", original_exception=e)
 
-async def get_refresh_token(user_id:UUID,
+async def get_refresh_token(user_id:UUID, device_id:UUID,
                             db:AsyncSession)-> str | None:
     try:
         res = await db.execute(
-                        select(Token).where(Token.user_id==user_id))
+                        select(Token).where(and_(Token.user_id==user_id, 
+                                                 Token.device_id == device_id)))
         token = res.scalar_one_or_none()
         
         if token is None:
@@ -91,20 +92,46 @@ async def get_refresh_token(user_id:UUID,
     except Exception as e:
         raise DBError(context=f"[get_refresh_token] failed id={user_id}", original_exception=e)
 
-
-async def add_refresh_token(user_id:UUID, 
+# add/refresh refresh_token
+async def save_refresh_token(user_id:UUID, 
+                             device_id:UUID,
                             token:str,
                             expires_at: int,
                              db: AsyncSession) -> None:
-    token = Token(user_id=user_id, 
-                  refresh_token=token,
-                  expires_at=expires_at
-                  )
-
+    
     try:
-        db.add(token)
+        res = await db.execute(select(Token).where(and_(Token.user_id == user_id,
+                                                        Token.device_id == device_id
+                                                        )))
+        refresh_token = res.scalar_one_or_none()
+        if refresh_token:
+            refresh_token.refresh_token = token
+            refresh_token.expires_at = expires_at
+        else:
+            refresh_token = Token(user_id=user_id, 
+                                  device_id=device_id,
+                        refresh_token=token,
+                        expires_at=expires_at
+                        )
+            db.add(refresh_token)
         await db.commit()
-        await db.refresh(token)
+        await db.refresh(refresh_token)
     except Exception as e:
         await db.rollback()
-        raise DBError(context=f"[get_refresh_token] failed id={user_id}", original_exception=e)
+        raise DBError(context=f"[save_refresh_token] failed id={user_id}", original_exception=e)
+
+
+async def remove_refresh_token(user_id:UUID, device_id:UUID,
+                            db:AsyncSession):
+    try:
+        res = await db.execute(
+            delete(Token).where(and_(Token.user_id==user_id, 
+                                    Token.device_id == device_id)))
+        
+        await db.commit()
+        if res.rowcount == 0:
+            return False
+        return True
+
+    except Exception as e:
+        raise DBError(context=f"[remove_refresh_token] failed id={user_id}", original_exception=e)

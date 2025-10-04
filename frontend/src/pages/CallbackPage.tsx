@@ -4,9 +4,8 @@ import { API_BASE_URL } from '../config';
 import { useNavigate } from "react-router-dom";
 
 export default function CallbackPage(
-  {setUser, setToken, setThirdList}: {
+  {setUser, setThirdList}: {
     setUser: (user: any) => void;
-  setToken: (token: any) => void;
   setThirdList: React.Dispatch<React.SetStateAction<string[]>>;
   }) {
   const navigate = useNavigate();
@@ -24,6 +23,7 @@ export default function CallbackPage(
         // Call backend with code
   const res = await fetch(`${API_BASE_URL}/auth/google/callback`, {
           method: "POST",
+          credentials:"include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -32,12 +32,11 @@ export default function CallbackPage(
         if (!res.ok) throw new Error("Login failed");
         const data = await res.json();
 
-        // Save token and user info
-        sessionStorage.setItem("access_token", data.token.access_token);
-        sessionStorage.setItem("refresh_token", data.token.refresh_token);
+        // Save token, device_id, user info
+        localStorage.setItem("access_token", data.token.access_token);
+        localStorage.setItem("device_id", data.device_id)
         // 부모 state 업데이트
         setUser(data.user);
-        setToken(data.token);
         setThirdList(data.connected);
 
         // Redirect to main page

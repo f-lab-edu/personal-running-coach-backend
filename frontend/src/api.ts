@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './config';
 // Fetch AI generated sessions and advice (GET /ai/get)
 export async function fetchAnalysis() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/ai/get`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -11,7 +11,7 @@ export async function fetchAnalysis() {
 
 // Generate new AI sessions and advice (POST /ai/generate)
 export async function generateAnalysis() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/ai/generate`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` }
@@ -23,9 +23,9 @@ export async function generateAnalysis() {
 
 // Fetch current user profile (GET /profile/me)
 export async function fetchProfile() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/profile/me`, {
-    method: 'PUT',
+    method: 'GET',
     headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Failed to fetch profile');
@@ -45,7 +45,7 @@ export async function updateProfile(data: {
     train_goal?: string;
   };
 }) {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     const res = await fetch(`${API_BASE_URL}/profile/update`, {
     method: 'PUT',
     headers: {
@@ -63,7 +63,7 @@ export async function updateProfile(data: {
 export async function fetchTrainDetail(session_id: string) {
   const url = `${API_BASE_URL}/trainsession/${session_id}`;
   const headers: Record<string, string> = {};
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
     if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch session detail');
@@ -72,14 +72,28 @@ export async function fetchTrainDetail(session_id: string) {
 
 
 // Fetch train schedules (GET /trainsession/fetch-schedules)
-export async function fetchSchedules(token: string, date?: number) {
+export async function fetchSchedules(token: string, date?: number, etag?: string) {
   const url = new URL(`${API_BASE_URL}/trainsession/fetch-schedules`);
   if (date) url.searchParams.append('date', date.toString());
-    const res = await fetch(url.toString(), {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error('Failed to fetch schedules');
-  return await res.json();
+
+  // header 
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (etag) headers["If-None-Match"] = etag;
+
+  const res = await fetch(url.toString(), {headers});
+
+  // 
+  if (res.status == 304) {
+    return { notModified: true};
+  }
+
+  if (!res.ok) {
+    // console.log(res);
+    throw new Error('Failed to fetch schedules')
+  };
+  // 서버에서 새로운 etag + data 내려줌
+  const data = await res.json();
+  return { notModified: false, ...data };
 }
 
 // Fetch new schedules (GET /trainsession/fetch-new-schedules)
@@ -89,7 +103,32 @@ export async function fetchNewSchedules(token: string, date?: number) {
     const res = await fetch(url.toString(), {
     headers: { 'Authorization': `Bearer ${token}` }
   });
-  if (!res.ok) throw new Error('Failed to fetch new schedules');
+  if (res.status == 404) throw new Error("no connected party");
+  else if (!res.ok) throw new Error('Failed to fetch new schedules');
+  return await res.json();
+}
+
+// Upload new train session (POST /trainsession/upload)
+export async function postNewSchedule(data: {
+  train_date: string; // datetime string (ISO or 'YYYY-MM-DD HH:mm:ss.ssssss')
+  distance?: number;
+  avg_speed?: number;
+  total_time?: number;
+  activity_title?: string;
+  analysis_result?: string;
+}) {
+  const token = localStorage.getItem('access_token');
+  // Ensure train_date is a valid datetime string
+  // If needed, convert JS Date to ISO string: new Date().toISOString()
+  const res = await fetch(`${API_BASE_URL}/trainsession/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Failed to upload new schedule');
   return await res.json();
 }
 
@@ -97,10 +136,39 @@ export async function loginWithEmail(email: string, pwd: string) {
   const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ email, pwd })
+     body: JSON.stringify({ email, pwd }),
+     credentials: "include",
   });
   if (!res.ok) throw new Error('Login failed');
   return await res.json();
+}
+
+export async function loginWithToken() {
+  const accessToken = localStorage.getItem("access_token");
+  if (!accessToken) throw new Error('no token');
+
+  const res = await fetch(`${API_BASE_URL}/auth/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (res.ok) return await res.json();
+  
+  else { // refresh token
+    const device_id = localStorage.getItem("device_id");
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: "include",
+      headers: {
+        'Authorization': `Bearer ${device_id}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (res.ok) return await res.json();
+    else throw new Error("no token login");
+  }
 }
 
 export async function loginWithGoogle() {
@@ -118,8 +186,28 @@ export async function signup(email: string, pwd: string, name: string) {
   return res.ok;
 }
 
+
+export async function logout(deviceId: string) {
+  const token = localStorage.getItem('access_token');
+  const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // HttpOnly refresh_token 쿠키 전송
+    body: JSON.stringify({ device_id: deviceId }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Logout failed');
+  }
+  return await res.json();
+}
+
+
 export async function connectStrava() {
-  const token = sessionStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
   const res = await fetch(`${API_BASE_URL}/auth/strava/connect`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });

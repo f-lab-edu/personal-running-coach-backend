@@ -30,6 +30,10 @@ class DatabaseConfig(CommonConfig):
     url: str = Field(default="sqlite+aiosqlite:///./db.sqlite3", alias="DATABASE_URL")
     echo: bool = Field(default=True, alias="DATABASE_ECHO")
 
+class RedisConfig(CommonConfig):
+    host: str = Field(default="redis", alias="REDIS_HOST")
+    port: int = Field(default=6379, alias="REDIS_PORT")
+
 class CORSConfig(CommonConfig):
     origins: str = Field(default="*", alias="CORS_ORIGINS")
     credentials: bool = Field(default=True, alias="CORS_CREDENTIALS")
@@ -66,6 +70,7 @@ class LLMConfig(CommonConfig):
     secret:str = Field(default="", alias="OPENAI_SECRET")
 
 db = DatabaseConfig()
+redisdb = RedisConfig()
 cors = CORSConfig()
 web = WebConfig()
 google = GoogleConfig()

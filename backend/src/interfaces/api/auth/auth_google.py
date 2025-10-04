@@ -8,7 +8,7 @@
 6. 로그인 처리 후 토큰 반환 
 
 """
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, Response
 from starlette.responses import RedirectResponse
 import urllib.parse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,12 +56,23 @@ async def login_with_google():
 
 
 @google_router.post("/callback", response_model=LoginResponse)
-async def google_callback(code:str = Body(..., embed=True),
-                          google_handler:GoogleHandler = Depends(get_handler)):
+async def google_callback(response:Response,
+                        code:str = Body(..., embed=True),  
+                        google_handler:GoogleHandler = Depends(get_handler)):
     if not code:
         raise HTTPException(status_code=400, detail="missing code")
     try:
         login_res = await google_handler.handle_login(auth_code=code)
+
+        response.set_cookie(
+            key="refresh_token",
+            value=login_res.token.refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            max_age=30 * 24 * 60 * 60
+        )
+        login_res.token.refresh_token = None
         return login_res
     except CustomError as e:
         if e.original_exception:

@@ -15,10 +15,10 @@ async def add_train_session(db: AsyncSession,
                             activity:ActivityData,
                             ) -> TrainSession:
     try:
+
         session = TrainSession(
             user_id=user_id,
             provider=activity.provider,
-            activity_id=activity.activity_id,
             train_date=activity.start_date,
             distance=activity.distance,
             avg_speed=activity.average_speed,
@@ -28,7 +28,7 @@ async def add_train_session(db: AsyncSession,
         )
         
         db.add(session)
-        await db.commit()
+        await db.commit()  ## increment + add 한번에 커밋
         await db.refresh(session)
         return session
     except IntegrityError as e:

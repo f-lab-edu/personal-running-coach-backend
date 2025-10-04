@@ -8,7 +8,7 @@ from ports.training_port import TrainingPort
 from schemas.models import (ActivityData, 
                             LapData, 
                             StreamData, 
-                            TrainResponse, 
+                            TrainResponse, TrainRequest,
                             TrainDetailResponse)
 from infra.db.storage import activity_repo as repo
 from config.exceptions import InternalError, CustomError
@@ -46,13 +46,35 @@ class TrainingAdapter(TrainingPort):
             raise InternalError(context="error save_session", original_exception=e)
         
         
-    def update_session(self, user_id:UUID, 
-                     session:ActivityData = None,
+    async def upload_session(self, user_id:UUID, 
+                     session:TrainRequest = None,
                      laps:List[LapData] = None,
                      stream:StreamData = None)->bool:
-        """훈련 세션  (TrainSession , Stream, Lap) 업데이트. 수정된 부분만. """
+        """훈련 세션  (TrainSession , Stream, Lap) 업로드. """
+        try:
 
-        ...
+            activity = ActivityData(
+                provider="local",
+                activity_title=session.activity_title,
+                analysis_result=session.analysis_result,
+                elapsed_time=session.total_time,
+                start_date=session.train_date,
+                average_speed=session.avg_speed,
+                distance=session.distance,   
+            )
+            res = await repo.add_train_session(db=self.db,
+                                   user_id=user_id,
+                                   activity=activity
+                                   )
+            if res:
+                return True
+            return False
+
+        except CustomError:
+            raise
+        except Exception as e:
+            raise InternalError(context="error update_session", original_exception=e)
+           
         
     def get_session_by_id(self, user_id:UUID, session_id:UUID, sport_type:str)->TrainResponse:
         """훈련 세션 받기"""

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from infra.db.storage.session import get_session
@@ -61,7 +61,7 @@ async def validate_current_user(
 async def get_current_header(
     access_cred:HTTPAuthorizationCredentials = Depends(auth_scheme)
 ) -> str:
-    """헤더에서 jwt 문자열 추출"""
+    """헤더에서 Authorization: Bearer jwt 문자열 추출"""
     try:
         return access_cred.credentials
 
@@ -69,3 +69,20 @@ async def get_current_header(
         logger.exception(f"get_current_header. {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
+
+async def get_etag(if_none_match: str | None = Header(None, alias="If-None-Match")) -> str | None:
+    """
+    클라이언트가 보낸 ETag를 헤더에서 추출
+    FastAPI에서 자동으로 'If-None-Match' 헤더 매핑
+    """
+    try:
+        if if_none_match is None:
+            return None
+
+        if not isinstance(if_none_match, str):
+            raise HTTPException(status_code=400, detail="Invalid ETag header")
+
+        return if_none_match
+    except Exception as e:
+        logger.exception(f"etag header. {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")

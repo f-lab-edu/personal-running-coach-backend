@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from uuid import UUID, uuid4
 
 from adapters import AccountAdapter, TokenAdapter
 from schemas.models import AccountResponse, LoginResponse, TokenResponse
@@ -35,31 +35,26 @@ class AuthHandler():
 
             # 토큰 발급
             access = self.token_adapter.create_access_token(user_id=acct_response.id)
-            
-            # 기존 리프레시 토큰 있는지 확인
-            existing_token = await repo.get_refresh_token(user_id=acct_response.id,
-                                                        db=self.db
-                                                        )
-            
-            # 기존 토큰 존재시 기존 토큰 반환
-            if existing_token:
-                refresh_token = decrypt_token(existing_token,
-                                        key=security.encryption_key_refresh)
                 
-            else: # 없을 시 새 토큰 발급
-                refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
-                refresh_token = refresh_result.token
-                
-                # 리프레시 토큰 암호화 저장
-                encrypted = encrypt_token(data=refresh_token,
-                                        key=security.encryption_key_refresh,
-                                        token_type="account_refresh"
-                                        )
-                await repo.add_refresh_token(
-                    user_id=acct_response.id, token=encrypted, 
-                    expires_at=refresh_result.expires_at,
-                    db=self.db
-                )
+            # else: # 없을 시 새 토큰 발급
+            refresh_result = self.token_adapter.create_refresh_token(user_id=acct_response.id)
+            refresh_token = refresh_result.token
+            
+            # 리프레시 토큰 암호화 저장
+            encrypted = encrypt_token(data=refresh_token,
+                                    key=security.encryption_key_refresh,
+                                    token_type="account_refresh"
+                                    )
+            
+            device_id = uuid4()
+
+            await repo.save_refresh_token(
+                user_id=acct_response.id, 
+                device_id=device_id,
+                token=encrypted, 
+                expires_at=refresh_result.expires_at,
+                db=self.db
+            )
             
             third_parties = await get_all_user_tokens(
                 user_id= acct_response.id,
@@ -70,8 +65,9 @@ class AuthHandler():
             return LoginResponse(
                 token=TokenResponse(
                     access_token=access,
-                    refresh_token=refresh_token
+                    refresh_token=encrypted
                 ),
+                device_id=device_id,
                 user=acct_response,
                 connected=connected_li
             )
@@ -130,7 +126,7 @@ class AuthHandler():
             raise InternalError(context="error login_token", original_exception=e)
         
         
-    async def refresh_token(self, refresh:str)->LoginResponse:
+    async def refresh_token(self, refresh:str, device_id:UUID)->LoginResponse:
         """토큰 재발급
             클라이언트 리프레시토큰 검증
             리프레시토큰이 유효할 시 엑세스 토큰 새로 발급 후 로그인 처리
@@ -139,13 +135,19 @@ class AuthHandler():
             기타 에러 발생시 500 에러
         """
         try:
+            # 토큰 디코드
+            refresh_decrypted = decrypt_token(token_encrypted=refresh,
+                                              key=security.encryption_key_refresh,
+                                                token_type="account_refresh"
+                                              )
             # 액세스 토큰 검증
-            refresh_payload = self.token_adapter.verify_refresh_token(refresh)
-
+            refresh_payload = self.token_adapter.verify_refresh_token(refresh_decrypted)
             # 리프레시 토큰 db 대조
+
             valid = await self.account_adapter.validate_token_with_db(
                                         user_id=refresh_payload.user_id,
-                                        refresh_token=refresh)
+                                        device_id=device_id,
+                                        refresh_token=refresh_decrypted)
             # 토큰 not valid
             if not valid: 
                 raise ValidationError(detail="refresh_token not valid")
@@ -168,6 +170,7 @@ class AuthHandler():
                     access_token=new_access,
                     refresh_token=refresh
                     ),
+                device_id=device_id,
                 user=AccountResponse(
                     id=user.id,
                     email=user.email,
@@ -181,3 +184,12 @@ class AuthHandler():
             raise
         except Exception as e:
             raise InternalError(context="error refresh_token", original_exception=e)
+    
+    async def logout(self, user_id:UUID, device_id:UUID):
+        try:
+            await self.account_adapter.remove_token(user_id=user_id, device_id=device_id)
+        except CustomError:
+            raise
+        except Exception as e:
+            raise InternalError(context="error logout", original_exception=e)
+    
