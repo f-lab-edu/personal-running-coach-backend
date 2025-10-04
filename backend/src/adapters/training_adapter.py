@@ -12,7 +12,6 @@ from schemas.models import (ActivityData,
                             TrainDetailResponse)
 from infra.db.storage import activity_repo as repo
 from config.exceptions import InternalError, CustomError
-from config.constants import ACTIVITY_ID
 
 class TrainingAdapter(TrainingPort):
     def __init__(self, db:AsyncSession):
@@ -55,7 +54,6 @@ class TrainingAdapter(TrainingPort):
         try:
 
             activity = ActivityData(
-                activity_id=None,
                 provider="local",
                 activity_title=session.activity_title,
                 analysis_result=session.analysis_result,

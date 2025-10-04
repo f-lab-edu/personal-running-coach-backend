@@ -51,16 +51,13 @@ class ThirdPartyToken(SQLModel, table=True):
     extra_data: Optional[str] = None  
 
     user: Optional["User"] = Relationship(back_populates="third_party_tokens")
-    
-class Counter(SQLModel, table=True):
-    k: str = Field(primary_key=True)
-    v: int = Field(default=0)
+
 
 class TrainSession(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
     provider: Optional[str] = None
-    activity_id: int = Field(index=True)
+    activity_id: Optional[int] = None
     created_at: datetime = Field(default_factory= lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     train_date: datetime
     distance:Optional[float] = None
@@ -72,10 +69,6 @@ class TrainSession(SQLModel, table=True):
     user: Optional[User] = Relationship(back_populates="train_sessions")
     stream: Optional["TrainSessionStream"] = Relationship(back_populates="session", cascade_delete=True)
     laps: List["TrainSessionLap"] = Relationship(back_populates="session", cascade_delete=True)
-    
-    __table_args__ = (
-        UniqueConstraint("provider", "activity_id", name="uq_provider_activity"),
-    )
     
 
 class TrainSessionStream(SQLModel, table=True):

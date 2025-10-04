@@ -7,6 +7,3 @@ ETAG_TTL_SEC = 3600
 ETAG_TRAIN_SESSION = "train_session"
 
 PLATFORM = ['facebook', 'kakao', ]
-
-# counter key
-ACTIVITY_ID = "session_activity_id"
